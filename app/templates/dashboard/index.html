@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · SOMS{% endblock %}
+
+{% block content %}
+<div class="py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <div class="h4 mb-0">Dashboard</div>
+      <div class="text-muted small">최근 7일 변경(노트/작업) 샘플</div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white d-flex align-items-center justify-content-between">
+          <strong>작업 일정 ({{ cal_year }}-{{ "%02d"|format(cal_month) }})</strong>
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('schedule.index') }}">달력 보기</a>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered mb-0" style="table-layout: fixed;">
+              <thead class="table-light">
+                <tr class="text-center">
+                  <th class="text-danger">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class="text-danger">토</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for week in cal_weeks %}
+                  <tr style="height: 90px;">
+                    {% for d in week %}
+                      <td class="{% if d.month != cal_month %}bg-light text-muted{% endif %}">
+                        <div class="small fw-semibold">{{ d.day }}</div>
+                        {% set items = sr_by_day.get(d, []) %}
+                        {% for it in items[:2] %}
+                          <div class="small mt-1 p-1 rounded" style="background:#eef2ff;">
+                            <div class="fw-semibold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                              [{{ it.location }}] {{ it.company }}
+                            </div>
+                          </div>
+                        {% endfor %}
+                        {% if items|length > 2 %}
+                          <div class="small text-muted mt-1">+ {{ items|length - 2 }}</div>
+                        {% endif %}
+                      </td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-6">
+      <div class="row g-3">
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+              <strong>Recent Notes</strong>
+            </div>
+            <div class="card-body">
+              {% if recent_notes %}
+                <ul class="list-group list-group-flush">
+                  {% for n in recent_notes %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="small text-muted">{{ n.Person_ID }}</div>
+                        <div class="fw-semibold">{{ n.Severity }} · {{ n.Tags }}</div>
+                        <div class="text-muted">{{ n.Content[:120] }}{% if n.Content|length > 120 %}...{% endif %}</div>
+                      </div>
+                      <div class="text-muted small">{{ n.Created_At }}</div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div class="text-muted">No recent notes.</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white">
+              <strong>Recent Work</strong>
+            </div>
+            <div class="card-body">
+              {% if recent_work %}
+                <ul class="list-group list-group-flush">
+                  {% for w in recent_work %}
+                    <li class="list-group-item d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="small text-muted">{{ w.Person_ID }}</div>
+                        <div class="fw-semibold">{{ w.Work_Type }} · {{ w.Work_Summary }}</div>
+                        <div class="text-muted">{{ w.Submitter }}</div>
+                      </div>
+                      <div class="text-muted small">{{ w.Create_Date }}</div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <div class="text-muted">No recent work.</div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}고객 조회 · SOMS{% endblock %}
+
+{% block content %}
+<div class="py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <div class="h4 mb-0">고객 조회</div>
+      <div class="text-muted small">고객 검색 및 신규 등록</div>
+    </div>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customerCreateModal">
+      + 고객 등록
+    </button>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <table class="table table-hover table-striped align-middle">
+            <thead>
+              <tr class="text-muted small">
+                <th>Person_ID</th>
+                <th>고객명</th>
+                <th>사이트명</th>
+                <th>서비스유형</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in people %}
+              <tr>
+                <td class="text-muted">{{ p.Person_ID }}</td>
+                <td class="fw-semibold">{{ p.Company }}</td>
+                <td>{{ p.Last_Name }}</td>
+                <td>{{ p.Service_Type }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('customers.detail', person_id=p.Person_ID) }}">상세</a>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if not people %}
+              <tr>
+                <td colspan="5" class="text-center text-muted">No data</td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 고객 등록 모달 (Key Data만 입력) -->
+  <div class="modal fade" id="customerCreateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="fw-bold">고객 등록 (핵심 정보만)</div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+        </div>
+        <form method="post" action="{{ url_for('customers.list_customers') }}">
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">고객명 *</label>
+                <input class="form-control" name="Company" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">사이트명</label>
+                <input class="form-control" name="Last_Name">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">서비스유형</label>
+                <input class="form-control" name="Service_Type">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">클라이언트 유형</label>
+                <input class="form-control" name="Client_Type">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">개통일</label>
+                <input type="date" class="form-control" name="Open_Date">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">해지일</label>
+                <input type="date" class="form-control" name="Terminate_Date">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">서비스번호</label>
+                <input class="form-control" name="Service_Number">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">프로파일상태(서비스상태)</label>
+                <select class="form-select" name="Service_Status">
+                  <option value="">-- 선택 --</option>
+                  <option value="사용">사용</option>
+                  <option value="해지">해지</option>
+                  <option value="이용정지">이용정지</option>
+                  <option value="일시이용중단">일시이용중단</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">IDC(사이트)</label>
+                <input class="form-control" name="IDC">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">랙 위치</label>
+                <input class="form-control" name="Rack_Location">
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">고객 민감도</label>
+                <input class="form-control" name="Client_Sensitivity">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">레포트 여부</label>
+                <select class="form-select" name="Report_YN">
+                  <option value="">-- 선택 --</option>
+                  <option value="Y">예</option>
+                  <option value="N">아니오</option>
+                </select>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">영업담당</label>
+                <input class="form-control" name="Sales_Manager">
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <div class="small text-muted me-auto">
+              상세 정보(백업/계약/담당자 등)는 등록 후 상세 탭에서 입력합니다.
+            </div>
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+            <button type="submit" class="btn btn-primary">등록</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

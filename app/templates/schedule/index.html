@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}작업 일정 · SOMS{% endblock %}
+
+{% block content %}
+<div class="py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <div class="h4 mb-0">작업 일정</div>
+      <div class="text-muted small">작업일 기준으로 달력에 표시</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('schedule.index', y=prev_y, m=prev_m) }}">◀</a>
+      <div class="align-self-center fw-semibold">{{ year }}년 {{ month }}월</div>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('schedule.index', y=next_y, m=next_m) }}">▶</a>
+      <a class="btn btn-sm btn-primary" href="{{ url_for('work.list_work') }}">작업 등록</a>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-bordered mb-0" style="table-layout: fixed;">
+        <thead class="table-light">
+          <tr class="text-center">
+            <th class="text-danger">일</th>
+            <th>월</th><th>화</th><th>수</th><th>목</th><th>금</th>
+            <th class="text-danger">토</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for week in weeks %}
+            <tr style="height: 120px;">
+              {% for d in week %}
+                <td class="{% if d.month != month %}bg-light text-muted{% endif %}">
+                  <div class="small fw-semibold">{{ d.day }}</div>
+                  {% set items = by_day.get(d, []) %}
+                  {% for w, people in items[:3] %}
+                  <div class="small mt-1 p-1 rounded work-calendar-item"
+                       style="background:#eef2ff; cursor: pointer;"
+                       data-work-id="{{ w.Work_ID }}"
+                       data-person-id="{{ w.Person_ID }}"
+                       data-company="{{ people.Company or '' }}"
+                       data-last-name="{{ people.Last_Name or '' }}"
+                       data-history="{{ people.chHistory or '' }}"
+                       data-etc="{{ people.chEtc or '' }}"
+                       data-work-date="{{ w.Work_Date if w.Work_Date else '' }}"
+                       data-type="{{ w.Work_Type or '' }}"
+                       data-summary="{{ w.Summary or '' }}"
+                       data-description="{{ w.Description or '' }}"
+                       data-submitter="{{ w.Submitter }}"
+                       data-create-date="{{ (w.Create_Date.strftime('%Y-%m-%d') if w.Create_Date else '') }}">
+                    <div class="fw-semibold">[{{ people.Company or '' }}] {{ w.Work_Type or '' }}</div>
+                    <div class="text-muted" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                      {{ (w.Summary or w.Description or '') }}
+                    </div>
+                  </div>
+                  {% endfor %}
+
+                  {% if items|length > 3 %}
+                    <div class="small text-muted mt-1">+ {{ items|length - 3 }} more</div>
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 작업 상세 모달 -->
+<div class="modal fade" id="workDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header" style="background-color: #1e3a8a; color: white;">
+        <h5 class="modal-title fw-bold">작업 상세 정보</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <!-- 기본 정보 -->
+        <div class="mb-3">
+          <h6 class="fw-bold mb-2 pb-2 border-bottom" style="font-size: 0.95rem; color: #1e3a8a;">기본 정보</h6>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <div class="small text-muted mb-1">작업ID</div>
+              <div class="fw-semibold text-dark" id="workDetailId">-</div>
+            </div>
+            <div class="col-md-6">
+              <div class="small text-muted mb-1">고객사</div>
+              <div class="fw-semibold text-dark" id="workDetailCompany">-</div>
+            </div>
+            <div class="col-md-6">
+              <div class="small text-muted mb-1">사이트명</div>
+              <div class="fw-semibold text-dark" id="workDetailLastName">-</div>
+            </div>
+            <div class="col-md-6">
+              <div class="small text-muted mb-1">작업일</div>
+              <div class="fw-semibold text-dark" id="workDetailDate">-</div>
+            </div></div>
+        </div>
+
+        <!-- 작업 상세 -->
+        <div class="mb-3">
+          <h6 class="fw-bold mb-2 pb-2 border-bottom" style="font-size: 0.95rem; color: #1e3a8a;">작업 상세</h6>
+          <div class="row g-2 mb-2">
+            <div class="col-md-9">
+              <div class="small text-muted mb-1">요약</div>
+              <div class="p-2 bg-light rounded border small" id="workDetailSummary">-</div>
+            </div>
+            <div class="col-md-3">
+              <div class="small text-muted mb-1">유형</div>
+              <span class="badge" style="background-color: #1e3a8a;" id="workDetailType">-</span>
+            </div></div>
+          <div class="mb-2">
+            <div class="small text-muted mb-1">상세 내용</div>
+            <div class="p-2 bg-light rounded border small" id="workDetailContent" style="white-space: pre-wrap; max-height: 120px; overflow-y: auto;">-</div>
+          </div>
+        </div>
+
+        <!-- 추가 정보 -->
+        <div class="mb-3">
+          <h6 class="fw-bold mb-2 pb-2 border-bottom" style="font-size: 0.95rem; color: #1e3a8a;">추가 정보</h6>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <div class="small text-muted mb-1">등록자</div>
+              <div class="fw-semibold text-dark" id="workDetailSubmitter">-</div>
+            </div>
+            <div class="col-md-6">
+              <div class="small text-muted mb-1">등록일</div>
+              <div class="fw-semibold text-dark" id="workDetailCreateDate">-</div>
+            </div>
+            <div class="col-12">
+              <div class="small text-muted mb-1">작업 이력</div>
+              <div class="p-2 bg-light rounded border small" id="workDetailHistory" style="max-height: 80px; overflow-y: auto;">-</div>
+            </div>
+            <div class="col-12">
+              <div class="small text-muted mb-1">비고</div>
+              <div class="p-2 bg-light rounded border small" id="workDetailEtc" style="max-height: 80px; overflow-y: auto;">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-top">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

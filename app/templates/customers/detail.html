@@ -1,0 +1,863 @@
+{% extends "base.html" %}
+{% block title %}고객 상세 · SOMS{% endblock %}
+
+{% block content %}
+<div class="py-4">
+  <div class="container-fluid">
+    <div class="row g-3">
+      <!-- Left Sidebar -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm sticky-top" style="top: 1rem;">
+          <div class="card-body text-center">
+            <div class="mb-3">
+              <i class="fa-solid fa-building fa-3x text-primary"></i>
+            </div>
+            <div class="h5 mb-0">{{ people.Company }}</div>
+            <div class="text-muted small">{{ people.Last_Name or '' }}</div>
+
+            <div class="mt-3">
+              <span class="badge bg-success">사용중</span>
+              <span class="badge bg-secondary">민감도: {{ people.Client_Sensitivity or 'N/A' }}</span>
+            </div>
+
+            <div class="mt-3 small text-muted">
+              영업담당: {{ people.Sales_Manager or '미지정' }}
+            </div>
+
+            <div class="mt-3">
+              <div class="small text-muted mb-2">대표 연락처</div>
+              <div class="d-grid gap-2">
+                <button class="btn btn-outline-secondary btn-sm" disabled>
+                  <i class="fa-solid fa-phone"></i> 전화
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" disabled>
+                  <i class="fa-solid fa-envelope"></i> 이메일
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-4 d-grid gap-2">
+              <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#customerEditModal">
+                정보 수정
+              </button><a class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#workCreateModal">
+                작업 추가
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Content -->
+      <div class="col-md-9">
+        <ul class="nav nav-tabs">
+          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-overview">대시보드</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-assets">보안장비</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-work">작업 이력</button></li>
+          <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-admin">계약 및 관리</button></li>
+        </ul>
+
+        <div class="tab-content border border-top-0 bg-white p-3 shadow-sm">
+          <!-- Overview -->
+          <div class="tab-pane fade show active" id="tab-overview">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="card border-0 bg-light">
+                  <div class="card-body">
+                    <div class="small text-muted mb-2">서비스 상태</div>
+                    <div class="h5 mb-0">{{ people.Service_Status or '미지정' }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card border-0 bg-light">
+                  <div class="card-body">
+                    <div class="small text-muted mb-2">서비스 유형</div>
+                    <div class="h5 mb-0">{{ people.Service_Type or '미지정' }}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-12">
+                <h6 class="border-bottom pb-2">기본 정보</h6>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <div class="small text-muted">서비스번호</div>
+                    <div>{{ people.Service_Number or '-' }}</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="small text-muted">클라이언트 유형</div>
+                    <div>{{ people.Client_Type or '-' }}</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="small text-muted">개통일</div>
+                    <div>{{ people.Open_Date or '-' }}</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="small text-muted">해지일</div>
+                    <div>{{ people.Terminate_Date or '-' }}</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="small text-muted">IDC(사이트)</div>
+                    <div>{{ people.IDC or '-' }}</div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="small text-muted">랙 위치</div>
+                    <div>{{ people.Rack_Location or '-' }}</div>
+                  </div></div>
+              </div><div class="col-12">
+                <h6 class="border-bottom pb-2">특이사항</h6>
+                <div class="small text-muted mb-1">침탐 특이사항</div>
+                <div class="p-2 bg-light rounded mb-3">{{ people.chHistory or '-' }}</div>
+                <div class="small text-muted mb-1">고객 특이사항</div>
+                <div class="p-2 bg-light rounded">{{ people.chEtc or '-' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assets -->
+          <div class="tab-pane fade" id="tab-assets">
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0">보안장비</h6>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#assetAddModal">
+                  <i class="fa-solid fa-plus"></i> 장비 추가
+                </button>
+              </div>
+              <table class="table table-hover table-striped">
+                <thead>
+                  <tr>
+                    <th>장비명</th>
+                    <th>유형</th>
+                    <th>제조사</th>
+                    <th>모델</th>
+                    <th>상태</th>
+                    <th>설치일</th>
+                    <th style="width:120px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in ci_rows %}
+                  <tr>
+                    <td>{{ c.Name }}</td>
+                    <td>{{ c.Type }}</td>
+                    <td>{{ c.Manufacturer_Name }}</td>
+                    <td>{{ c.Model_Number }}</td>
+                    <td>
+                      {% if c.AssetLifecycleStatus == 3 %}
+                      <span class="badge bg-success">사용중</span>
+                      {% elif c.AssetLifecycleStatus == 1 %}
+                      <span class="badge bg-info">입고됨</span>
+                      {% elif c.AssetLifecycleStatus == 0 %}
+                      <span class="badge bg-secondary">주문됨</span>
+                      {% elif c.AssetLifecycleStatus == 11 %}
+                      <span class="badge bg-danger">해지/폐기</span>
+                      {% else %}
+                      <span class="badge bg-secondary">{{ c.AssetLifecycleStatus }}</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ c.InstallationDate.strftime('%Y-%m-%d') if c.InstallationDate else '-' }}</td>
+                    <td class="text-end">
+                      <form method="post"
+                            action="{{ url_for('customers.delete_ci', person_id=people.Person_ID, asset_id=c.Asset_ID) }}"
+                            onsubmit="return confirm('보안장비를 삭제할까요?');">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                    <td colspan="7" class="text-center text-muted">등록된 보안장비가 없습니다.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div><div class="mb-3">
+              <h6 class="mb-2">서버</h6>
+              <table class="table table-hover table-striped">
+                <thead>
+                  <tr>
+                    <th>서버명</th>
+                    <th>정보</th>
+                    <th>등록자</th>
+                    <th style="width:120px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for s in server_rows %}
+                  <tr>
+                    <td>{{ s.chServerName }}</td>
+                    <td>{{ s.chServerInfo }}</td>
+                    <td>{{ s.Submitter }}</td>
+                    <td class="text-end">
+                      <form method="post" action="{{ url_for('customers.delete_server', person_id=people.Person_ID, server_id=s.Server_ID) }}"
+                            onsubmit="return confirm('서버를 삭제할까요?');">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                    <td colspan="4" class="text-center text-muted">데이터 없음</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mb-3">
+              <h6 class="mb-2">담당자</h6>
+              <table class="table table-hover table-striped">
+                <thead>
+                  <tr>
+                    <th>이름</th>
+                    <th>역할</th>
+                    <th>전화</th>
+                    <th>이메일</th>
+                    <th style="width:120px;"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for c in contact_rows %}
+                  <tr>
+                    <td>{{ c.Name }}</td>
+                    <td>{{ c.Role_Type }}</td>
+                    <td>{{ c.Phone }}</td>
+                    <td>{{ c.Email }}</td>
+                    <td class="text-end">
+                      <form method="post" action="{{ url_for('customers.delete_contact', person_id=people.Person_ID, contact_id=c.Contact_ID) }}"
+                            onsubmit="return confirm('담당자를 삭제할까요?');">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">데이터 없음</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Work Log -->
+          <div class="tab-pane fade" id="tab-work">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>작업일</th>
+                    <th>유형</th>
+                    <th>요약</th>
+                    <th>등록자</th>
+                    <th>등록일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for w in work_rows %}
+                  <tr>
+                    <td>{{ w.Work_Date or '-' }}</td>
+                    <td><span class="badge bg-secondary">{{ w.Work_Type }}</span></td>
+                    <td>{{ w.Summary or w.Description[:50] }}</td>
+                    <td>{{ w.Submitter }}</td>
+                    <td>{{ w.Create_Date.strftime('%Y-%m-%d') if w.Create_Date else '-' }}</td>
+                  </tr>
+                  {% else %}
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">작업 이력이 없습니다.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Admin -->
+          <div class="tab-pane fade" id="tab-admin">
+            <h6 class="mb-2">계약 정보</h6>
+            <table class="table table-hover table-striped">
+              <thead>
+                <tr>
+                  <th>계약명</th>
+                  <th>금액</th>
+                  <th>기간</th>
+                  <th style="width:120px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for c in contract_rows %}
+                <tr>
+                  <td>{{ c.Contract_Name }}</td>
+                  <td>{{ c.Contract_Amount }}</td>
+                  <td>{{ c.Contract_Start_Date }} ~ {{ c.Contract_End_Date }}</td>
+                  <td class="text-end">
+                    <form method="post" action="{{ url_for('customers.delete_contract', person_id=people.Person_ID, contract_id=c.Contract_ID) }}"
+                          onsubmit="return confirm('계약을 삭제(숨김)할까요?');">
+                      <button class="btn btn-sm btn-outline-danger" type="submit">삭제</button>
+                    </form>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="4" class="text-center text-muted">데이터 없음</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 고객 정보 수정 모달 -->
+<div class="modal fade" id="customerEditModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="fw-bold">고객 정보 수정</div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <form method="post" action="{{ url_for('customers.update_customer', person_id=people.Person_ID) }}">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">고객명 *</label>
+              <input class="form-control" name="Company" value="{{ people.Company }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">사이트명</label>
+              <input class="form-control" name="Last_Name" value="{{ people.Last_Name or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">서비스유형</label>
+              <input class="form-control" name="Service_Type" value="{{ people.Service_Type or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">클라이언트 유형</label>
+              <input class="form-control" name="Client_Type" value="{{ people.Client_Type or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">개통일</label>
+              <input type="date" class="form-control" name="Open_Date" value="{{ people.Open_Date or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">해지일</label>
+              <input type="date" class="form-control" name="Terminate_Date" value="{{ people.Terminate_Date or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">침탐 특이사항</label>
+              <textarea class="form-control" name="chHistory" rows="2">{{ people.chHistory or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">고객 특이사항</label>
+              <textarea class="form-control" name="chEtc" rows="2">{{ people.chEtc or '' }}</textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">영업담당</label>
+              <input class="form-control" name="Sales_Manager" value="{{ people.Sales_Manager or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">계약 특이사항</label>
+              <textarea class="form-control" name="contract_memo__c" rows="2">{{ people.contract_memo__c or '' }}</textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">서비스 계약금액</label>
+              <input class="form-control" name="Service_Contract_Amount__c" value="{{ people.Service_Contract_Amount__c or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">서비스번호</label>
+              <input class="form-control" name="Service_Number" value="{{ people.Service_Number or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">프로파일상태(서비스상태)</label>
+              <select class="form-select" name="Service_Status">
+                <option value="">-- 선택 --</option>
+                <option value="사용" {% if people.Service_Status == "사용" %}selected{% endif %}>사용</option>
+                <option value="해지" {% if people.Service_Status == "해지" %}selected{% endif %}>해지</option>
+                <option value="이용정지" {% if people.Service_Status == "이용정지" %}selected{% endif %}>이용정지</option>
+                <option value="일시이용중단" {% if people.Service_Status == "일시이용중단" %}selected{% endif %}>일시이용중단</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">IDC(사이트)</label>
+              <input class="form-control" name="IDC" value="{{ people.IDC or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">랙 위치</label>
+              <input class="form-control" name="Rack_Location" value="{{ people.Rack_Location or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">고객 민감도</label>
+              <input class="form-control" name="Client_Sensitivity" value="{{ people.Client_Sensitivity or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">레포트 여부</label>
+              <select class="form-select" name="Report_YN">
+                <option value="">-- 선택 --</option>
+                <option value="Y" {% if people.Report_YN == "Y" %}selected{% endif %}>예</option>
+                <option value="N" {% if people.Report_YN == "N" %}selected{% endif %}>아니오</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">고객폴더 (일반파일)</label>
+              <input class="form-control" name="Customer_Folder" value="{{ people.Customer_Folder or '' }}">
+            </div>
+            <div class="col-12">
+              <label class="form-label">고객폴더 상세</label>
+              <textarea class="form-control" name="Customer_Folder_Detail" rows="2">{{ people.Customer_Folder_Detail or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">서비스 URL (악성코드탐지/감시)</label>
+              <input class="form-control" name="Service_URL__c" value="{{ people.Service_URL__c or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">고객업종분류</label>
+              <input class="form-control" name="Business_Type" value="{{ people.Business_Type or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">고객업종세부</label>
+              <input class="form-control" name="Business_Detail" value="{{ people.Business_Detail or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">백업서비스(유/무)</label>
+              <select class="form-select" name="Backup_Service">
+                <option value="">-- 선택 --</option>
+                <option value="Y" {% if people.Backup_Service == "Y" %}selected{% endif %}>유</option>
+                <option value="N" {% if people.Backup_Service == "N" %}selected{% endif %}>무</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">백업 유형</label>
+              <input class="form-control" name="Backup_Type" value="{{ people.Backup_Type or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">백업 기간/볼륨</label>
+              <input class="form-control" name="Backup_Period" value="{{ people.Backup_Period or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">백업 경로</label>
+              <input class="form-control" name="Backup_Path" value="{{ people.Backup_Path or '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">백신(유/무)</label>
+              <select class="form-select" name="Vaccine__c">
+                <option value="">-- 선택 --</option>
+                <option value="Y" {% if people.Vaccine__c == "Y" %}selected{% endif %}>유</option>
+                <option value="N" {% if people.Vaccine__c == "N" %}selected{% endif %}>무</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">쉘모니터(유/무)</label>
+              <select class="form-select" name="ShellMonitor__c">
+                <option value="">-- 선택 --</option>
+                <option value="Y" {% if people.ShellMonitor__c == "Y" %}selected{% endif %}>유</option>
+                <option value="N" {% if people.ShellMonitor__c == "N" %}selected{% endif %}>무</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">기타</label>
+              <textarea class="form-control" name="Other_Info" rows="2">{{ people.Other_Info or '' }}</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="submit" class="btn btn-primary">저장</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- 작업 등록 모달 -->
+<div class="modal fade" id="workCreateModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div>
+          <div class="fw-bold">작업 등록</div>
+          <div class="text-muted small">고객/작업유형/작업일 필수</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+      </div>
+      <form id="workCreateForm">
+        <div class="modal-body">
+          <div class="text-danger small mb-2" id="workCreateError"></div>
+          <input type="hidden" name="person_id" value="{{ people.Person_ID }}">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label">고객</label>
+              <input class="form-control" value="{{ people.Company }}" disabled>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">작업일 *</label>
+              <input type="date" class="form-control" name="work_date" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">작업 정보 유형 *</label>
+              <select class="form-select" name="work_type" required>
+                <option value="">-- 선택 --</option>
+                <option value="보안장비 변경">보안장비 변경</option>
+                <option value="오더 정보">오더 정보</option>
+                <option value="고객명 변경">고객명 변경</option>
+                <option value="기타">기타</option>
+                <option value="레포트">레포트</option>
+                <option value="보안장비 이중화">보안장비 이중화</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">요약</label>
+              <input class="form-control" name="summary">
+            </div>
+            <div class="col-12">
+              <label class="form-label">상세정보</label>
+              <textarea class="form-control" name="description" rows="6"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">첨부파일</label>
+              <input type="file" class="form-control" name="file">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="submit" class="btn btn-primary">등록</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- 보안장비 추가 모달 -->
+<div class="modal fade" id="assetAddModal" tabindex="-1" aria-labelledby="assetAddModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="assetAddModalLabel">보안장비 추가</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="POST" action="{{ url_for('customers.add_asset', person_id=people.Person_ID) }}">
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+          <!-- 안내 문구 -->
+          <div class="alert alert-info small">
+            <i class="fa-solid fa-info-circle"></i>
+            필수 항목(*)만 입력하면 등록됩니다. 나머지는 나중에 수정할 수 있습니다.
+          </div>
+
+          <!-- 기본 정보 (읽기 전용) -->
+          <h6 class="border-bottom pb-2 mb-3">기본 정보</h6>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">고객명 (회사명)</label>
+              <input type="text" class="form-control" value="{{ people.Company }}" readonly>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">사이트명</label>
+              <input type="text" class="form-control" value="{{ people.Last_Name or people.Company }}" readonly>
+            </div>
+          </div>
+
+          <!-- 장비 정보 입력 -->
+          <h6 class="border-bottom pb-2 mb-3 mt-4">
+            <span class="text-danger">*</span> 장비 정보
+          </h6>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label for="category" class="form-label text-danger">계층 1 *</label>
+              <select class="form-select" id="category" name="category" required>
+                <option value="">-- 선택 --</option>
+                <option value="보안장비">보안장비</option>
+                <option value="보안장비_VIP">보안장비_VIP</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="type" class="form-label text-danger">계층 2 *</label>
+              <select class="form-select" id="type" name="type" required>
+                <option value="">-- 선택 --</option>
+                <option value="방화벽">방화벽</option>
+                <option value="방화벽_VIP">방화벽_VIP</option>
+                <option value="NGFW">NGFW</option>
+                <option value="웹방화벽">웹방화벽</option>
+                <option value="스위치">스위치</option>
+                <option value="UTM">UTM</option>
+                <option value="UTM_VIP">UTM_VIP</option>
+                <option value="IPS">IPS</option>
+                <option value="IDS">IDS</option>
+                <option value="DDoS">DDoS</option>
+                <option value="VPN">VPN</option>
+                <option value="라우터">라우터</option>
+                <option value="스팸스나이퍼">스팸스나이퍼</option>
+                <option value="스팸스나이퍼_VIP">스팸스나이퍼_VIP</option>
+                <option value="웹키퍼">웹키퍼</option>
+                <option value="로그서버">로그서버</option>
+                <option value="암호화솔루션">암호화솔루션</option>
+                <option value="기타">기타</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="item" class="form-label">계층 3</label>
+              <select class="form-select" id="item" name="item">
+                <option value="">-- 선택 (선택사항) --</option>
+                <option value="Ahnlab">Ahnlab</option>
+                <option value="AIWAF">AIWAF</option>
+                <option value="AxGate">AxGate</option>
+                <option value="Catalyst">Catalyst</option>
+                <option value="Cisco">Cisco</option>
+                <option value="EX">EX</option>
+                <option value="F5">F5</option>
+                <option value="FortiDDoS">FortiDDoS</option>
+                <option value="Fortinet">Fortinet</option>
+                <option value="FTG">FTG</option>
+                <option value="FutureSystems">FutureSystems</option>
+                <option value="HansolNexG">HansolNexG</option>
+                <option value="HP">HP</option>
+                <option value="ICTIS">ICTIS</option>
+                <option value="ISG">ISG</option>
+                <option value="iwall">iwall</option>
+                <option value="Juniper">Juniper</option>
+                <option value="L4">L4</option>
+                <option value="L4 Alteon 180E">L4 Alteon 180E</option>
+                <option value="L4 PumPkin">L4 PumPkin</option>
+                <option value="MF2">MF2</option>
+                <option value="MFI">MFI</option>
+                <option value="Monitorapp">Monitorapp</option>
+                <option value="NE">NE</option>
+                <option value="Paloalto">Paloalto</option>
+                <option value="Penta">Penta</option>
+                <option value="Piolink">Piolink</option>
+                <option value="PulseSecure">PulseSecure</option>
+                <option value="RUCKUS">RUCKUS</option>
+                <option value="Secui">Secui</option>
+                <option value="SG2024">SG2024</option>
+                <option value="Sniper">Sniper</option>
+                <option value="SRX">SRX</option>
+                <option value="SSG">SSG</option>
+                <option value="TG">TG</option>
+                <option value="TrendMicro">TrendMicro</option>
+                <option value="UTM_VIP">UTM_VIP</option>
+                <option value="VIP">VIP</option>
+                <option value="Wapples">Wapples</option>
+                <option value="Web Front">Web Front</option>
+                <option value="Wins">Wins</option>
+                <option value="XIOS">XIOS</option>
+                <option value="로그서버">로그서버</option>
+                <option value="방화벽_VIP">방화벽_VIP</option>
+                <option value="스팸스나이퍼">스팸스나이퍼</option>
+                <option value="스팸스나이퍼_VIP">스팸스나이퍼_VIP</option>
+                <option value="웹키퍼">웹키퍼</option>
+              </select>
+            </div>
+          </div><div class="row g-3 mt-2">
+            <div class="col-md-6">
+              <label for="product_name" class="form-label text-danger">제품명 *</label>
+              <input type="text" class="form-control" id="product_name" name="product_name"
+                     placeholder="예: FortiGate, Cisco ASA" required>
+            </div>
+            <div class="col-md-6">
+              <label for="model_number" class="form-label text-danger">버전/모델 *</label>
+              <input type="text" class="form-control" id="model_number" name="model_number"
+                     placeholder="예: PA-3020, v7.2.4" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-2">
+            <div class="col-md-6">
+              <label for="manufacturer_name" class="form-label text-danger">제조업체 *</label>
+              <input type="text" class="form-control" id="manufacturer_name" name="manufacturer_name"
+                     placeholder="예: Palo Alto, Cisco, Fortinet" required>
+            </div>
+            <div class="col-md-6">
+              <label for="supplier" class="form-label">공급자명</label>
+              <select class="form-select" id="supplier" name="supplier">
+                <option value="">-- 선택 (선택사항) --</option>
+                <option value="ICTIS">ICTIS</option>
+                <option value="고객소유">고객소유</option>
+                <option value="기타">기타</option>
+                <option value="임대">임대</option>
+                <option value="펜타시큐리티">펜타시큐리티</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 접기/펼치기 추가 정보 -->
+          <div class="accordion mt-4" id="additionalInfoAccordion">
+            <!-- 장비 식별 정보 -->
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapseIdentity">
+                  장비 식별 정보 (선택사항)
+                </button>
+              </h2>
+              <div id="collapseIdentity" class="accordion-collapse collapse"
+                   data-bs-parent="#additionalInfoAccordion">
+                <div class="accordion-body">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label for="serial_number" class="form-label">일련 번호 (S/N)</label>
+                      <input type="text" class="form-control" id="serial_number" name="serial_number">
+                    </div>
+                    <div class="col-md-6">
+                      <label for="ip_info" class="form-label">IP 주소</label>
+                      <input type="text" class="form-control" id="ip_info" name="ip_info"
+                             placeholder="예: 192.168.1.1">
+                    </div>
+                    <div class="col-md-12">
+                      <label for="ci_note" class="form-label">장비 특이사항</label>
+                      <textarea class="form-control" id="ci_note" name="ci_note" rows="2"
+                                placeholder="장비 관련 특이사항을 입력하세요"></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 운영 정보 -->
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapseOperation">
+                  운영 정보 (선택사항)
+                </button>
+              </h2>
+              <div id="collapseOperation" class="accordion-collapse collapse"
+                   data-bs-parent="#additionalInfoAccordion">
+                <div class="accordion-body">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label for="maintenance_company" class="form-label">유지보수업체</label>
+                      <select class="form-select" id="maintenance_company" name="maintenance_company">
+                        <option value="12" selected>없음</option>
+                        <option value="0">ICTIS</option>
+                        <option value="1">에스에이정보기술</option>
+                        <option value="2">블루시큐어</option>
+                        <option value="3">유콘텍</option>
+                        <option value="4">유니포인트</option>
+                        <option value="5">엔큐리티</option>
+                        <option value="6">시큐트러스트</option>
+                        <option value="7">모니터랩</option>
+                        <option value="8">인스테크</option>
+                        <option value="9">쿼리시스템즈</option>
+                        <option value="10">에스디씨디엠</option>
+                        <option value="11">고객사 유지보수</option>
+                        <option value="13">윈스</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="operation_company" class="form-label">운영업체</label>
+                      <select class="form-select" id="operation_company" name="operation_company">
+                        <option value="0" selected>ICTIS</option>
+                        <option value="1">고객사</option>
+                        <option value="2">N/A</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="operation_mode" class="form-label">운영모드</label>
+                      <select class="form-select" id="operation_mode" name="operation_mode">
+                        <option value="0" selected>해당 없음</option>
+                        <option value="1">탐지</option>
+                        <option value="2">차단</option>
+                      </select>
+                    </div><div class="col-md-6">
+                      <label for="idc_site" class="form-label">DC (데이터센터)</label>
+                      <input type="text" class="form-control" id="idc_site" name="idc_site"
+                             value="{{ people.IDC or '' }}">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 백업 설정 -->
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapseBackup">
+                  백업 설정 (선택사항)
+                </button>
+              </h2>
+              <div id="collapseBackup" class="accordion-collapse collapse"
+                   data-bs-parent="#additionalInfoAccordion">
+                <div class="accordion-body">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label for="c_backup" class="form-label">CFG 백업</label>
+                      <select class="form-select" id="c_backup" name="c_backup">
+                        <option value="0" selected>YES</option>
+                        <option value="1">NO</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label for="c_cycle" class="form-label">백업 주기</label>
+                      <select class="form-select" id="c_cycle" name="c_cycle">
+                        <option value="0" selected>Daily</option>
+                        <option value="1">Weekly</option>
+                        <option value="2">Monthly</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label for="cfg_note" class="form-label">백업 특이사항</label>
+                      <input type="text" class="form-control" id="cfg_note" name="cfg_note">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 날짜 및 상태 -->
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#collapseStatus">
+                  상태 및 날짜 정보 (선택사항)
+                </button>
+              </h2>
+              <div id="collapseStatus" class="accordion-collapse collapse"
+                   data-bs-parent="#additionalInfoAccordion">
+                <div class="accordion-body">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label for="lifecycle_status" class="form-label">상태</label>
+                      <select class="form-select" id="lifecycle_status" name="lifecycle_status">
+                        <option value="3" selected>사용중(배치됨)</option>
+                        <option value="0">주문됨</option>
+                        <option value="1">입고됨</option>
+                        <option value="9">회수(재고)</option>
+                        <option value="11">해지(폐기됨)</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label for="installation_date" class="form-label">설치일</label>
+                      <input type="date" class="form-control" id="installation_date" name="installation_date">
+                    </div>
+                    <div class="col-md-6">
+                      <label for="license_expiry" class="form-label">라이선스 만료일</label>
+                      <input type="date" class="form-control" id="license_expiry" name="license_expiry">
+                    </div><div class="col-md-6">
+                      <label for="disposal_date" class="form-label">폐기일</label>
+                      <input type="date" class="form-control" id="disposal_date" name="disposal_date">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 비고 -->
+          <div class="mt-3">
+            <label for="description" class="form-label">비고</label>
+            <textarea class="form-control" id="description" name="description" rows="2"
+                      placeholder="추가 정보나 특이사항을 입력하세요"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="fa-solid fa-check"></i> 등록
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

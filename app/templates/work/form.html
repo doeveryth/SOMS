@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{% if item %}작업 수정{% else %}작업 등록{% endif %} · SOMS{% endblock %}
+
+{% block content %}
+<div class="py-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="h4 mb-0">{% if item %}작업 수정{% else %}작업 등록{% endif %}</div>
+    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('work.list_work') }}">목록</a>
+  </div>
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <form method="post" action="{% if item %}{{ url_for('work.update_work', work_id=item.Work_ID) }}{% else %}{{ url_for('work.create_work') }}{% endif %}">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">고객 *</label>
+            <select class="form-select" name="person_id" required>
+              <option value="">-- 선택 --</option>
+              {% for p in people %}
+                <option value="{{ p.Person_ID }}" {% if item and item.Person_ID == p.Person_ID %}selected{% endif %}>
+                  {{ p.Company or '' }} ({{ p.Person_ID }})
+                </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">목록이 200개로 제한되어 있습니다. 필요하면 검색형 선택으로 개선 가능합니다.</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">작업일 *</label>
+            <input type="date" class="form-control" name="work_date"
+                   value="{% if item and item.Work_Date %}{{ item.Work_Date.date() }}{% endif %}" required>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">처리자 *</label>
+            <input class="form-control" name="handler" required
+                   value="">
+            <div class="form-text">현재 WorkInfo 모델에 처리자 컬럼이 없어 내용에 함께 저장됩니다. 원하시면 컬럼 추가로 개선합니다.</div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">요약</label>
+            <input class="form-control" name="summary" value="{{ item.Work_Summary if item else '' }}">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">내용 *</label>
+            <textarea class="form-control" name="detail" rows="8" required>{{ item.Work_Detail if item else '' }}</textarea>
+          </div>
+
+          <div class="col-12 d-flex gap-2">
+            <button class="btn btn-primary" type="submit">{% if item %}수정 저장{% else %}등록{% endif %}</button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('work.list_work') }}">취소</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
