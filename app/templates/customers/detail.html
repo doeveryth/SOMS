@@ -4,54 +4,67 @@
 {% block content %}
 <div class="py-4">
   <div class="container-fluid">
-    <div class="row g-3">
-      <!-- Left Sidebar -->
+    <div class="row g-4">
+
       <div class="col-md-3">
         <div class="card border-0 shadow-sm sticky-top" style="top: 1rem;">
-          <div class="card-body text-center">
+          <div class="card-body text-center p-4">
             <div class="mb-3">
-              <i class="fa-solid fa-building fa-3x text-primary"></i>
-            </div>
-            <div class="h5 mb-0">{{ people.Company }}</div>
-            <div class="text-muted small">{{ people.Last_Name or '' }}</div>
-
-            <div class="mt-3">
-              <span class="badge bg-success">사용중</span>
-              <span class="badge bg-secondary">민감도: {{ people.Client_Sensitivity or 'N/A' }}</span>
-            </div>
-
-            <div class="mt-3 small text-muted">
-              영업담당: {{ people.Sales_Manager or '미지정' }}
-            </div>
-
-            <div class="mt-3">
-              <div class="small text-muted mb-2">대표 연락처</div>
-              <div class="d-grid gap-2">
-                <button class="btn btn-outline-secondary btn-sm" disabled>
-                  <i class="fa-solid fa-phone"></i> 전화
-                </button>
-                <button class="btn btn-outline-secondary btn-sm" disabled>
-                  <i class="fa-solid fa-envelope"></i> 이메일
-                </button>
+              <div class="avatar-circle bg-light text-primary mx-auto mb-3 d-flex align-items-center justify-content-center"
+                   style="width: 80px; height: 80px; border-radius: 50%;">
+                <i class="fa-solid fa-building fa-2x"></i>
               </div>
             </div>
 
-            <div class="mt-4 d-grid gap-2">
-              <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#customerEditModal">
-                정보 수정
+            <h4 class="fw-bold mb-1">{{ people.Company }}</h4>
+            <div class="text-muted mb-3">{{ people.Last_Name or '-' }}</div>
+
+            <div class="d-flex justify-content-center gap-2 mb-4">
+              {% if people.Service_Status|string == '1' %}
+                <span class="badge bg-success rounded-pill px-3 py-2 fs-6">사용중</span>
+              {% elif people.Service_Status|string == '2' %}
+                <span class="badge bg-info text-dark rounded-pill px-3 py-2 fs-6">개통중</span>
+              {% elif people.Service_Status|string == '3' %}
+                <span class="badge bg-danger rounded-pill px-3 py-2 fs-6">이용정지</span>
+              {% elif people.Service_Status|string == '5' %}
+                <span class="badge bg-secondary rounded-pill px-3 py-2 fs-6">해지</span>
+              {% else %}
+                <span class="badge bg-secondary rounded-pill px-3 py-2 fs-6">{{ people.Service_Status or '-' }}</span>
+              {% endif %}
+
+              {% if people.Client_Sensitivity|string == '0' %}
+                <span class="badge bg-danger rounded-pill px-3 py-2 fs-6">민감</span>
+              {% elif people.Client_Sensitivity|string == '2' %}
+                <span class="badge bg-warning text-dark rounded-pill px-3 py-2 fs-6">VIP</span>
+              {% else %}
+                <span class="badge bg-light text-dark border rounded-pill px-3 py-2 fs-6">표준</span>
+              {% endif %}
+            </div>
+
+            <hr class="my-4 dashed">
+
+            <div class="text-start px-2">
+                <div class="mb-3">
+                    <label class="text-secondary fw-bold mb-1">영업 담당자</label>
+                    <div class="fs-6">{{ people.Sales_Manager or '미지정' }}</div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 mt-4">
+              <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#customerEditModal">
+                <i class="bi bi-pencil-square me-1"></i> 정보 수정
               </button>
-              <a class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#workCreateModal">
-                작업 추가
+              <a class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#workCreateModal">
+                <i class="bi bi-journal-plus me-1"></i> 작업 추가
               </a>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Right Content -->
       <div class="col-md-9">
-        <ul class="nav nav-tabs">
-          <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-overview">대시보드</button></li>
+        <ul class="nav nav-tabs mb-3" style="font-size: 1.1rem;">
+          <li class="nav-item"><button class="nav-link active fw-bold" data-bs-toggle="tab" data-bs-target="#tab-overview">대시보드</button></li>
           <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-assets">보안장비</button></li>
           <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-servers">서버</button></li>
           <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-contacts">담당자</button></li>
@@ -59,64 +72,209 @@
           <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-admin">계약 및 관리</button></li>
         </ul>
 
-        <div class="tab-content border border-top-0 bg-white p-3 shadow-sm">
-          <!-- Overview Tab -->
+        <div class="tab-content">
           <div class="tab-pane fade show active" id="tab-overview">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="card border-0 bg-light">
-                  <div class="card-body">
-                    <div class="small text-muted mb-2">서비스 상태</div>
-                    <div class="h5 mb-0">{{ people.Service_Status or '미지정' }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="card border-0 bg-light">
-                  <div class="card-body">
-                    <div class="small text-muted mb-2">서비스 유형</div>
-                    <div class="h5 mb-0">{{ people.Service_Type or '미지정' }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="col-12">
-                <h6 class="border-bottom pb-2">기본 정보</h6>
-                <div class="row g-2">
-                  <div class="col-md-6">
-                    <div class="small text-muted">서비스번호</div>
-                    <div>{{ people.Service_Number or '-' }}</div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="small text-muted">클라이언트 유형</div>
-                    <div>{{ people.Client_Type or '-' }}</div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="small text-muted">개통일</div>
-                    <div>{{ people.Open_Date or '-' }}</div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="small text-muted">해지일</div>
-                    <div>{{ people.Terminate_Date or '-' }}</div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="small text-muted">IDC(사이트)</div>
-                    <div>{{ people.IDC or '-' }}</div>
-                  </div>
-                  <div class="col-md-6">
-                    <div class="small text-muted">랙 위치</div>
-                    <div>{{ people.Rack_Location or '-' }}</div>
-                  </div>
-                </div>
-              </div><div class="col-12">
-                <h6 class="border-bottom pb-2">특이사항</h6>
-                <div class="small text-muted mb-1">침탐 특이사항</div>
-                <div class="p-2 bg-light rounded mb-3">{{ people.chHistory or '-' }}</div>
-                <div class="small text-muted mb-1">고객 특이사항</div>
-                <div class="p-2 bg-light rounded">{{ people.chEtc or '-' }}</div>
-              </div>
-            </div>
-          </div>
 
+            <div class="row g-4">
+
+              <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                  <div class="card-header bg-white py-3 border-bottom-0">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-info-circle text-primary me-2"></i>서비스 및 계약</h5>
+                  </div>
+                  <div class="card-body pt-0">
+                    <table class="table table-borderless mb-0 align-middle">
+                      <tbody>
+                        <tr>
+                          <th class="text-secondary fw-bold" style="width: 140px;">서비스 번호</th>
+                          <td class="fs-6 fw-bold text-dark">{{ people.Service_Number or '-' }}</td>
+                        </tr>
+                        <tr>
+                          <th class="text-secondary fw-bold">서비스 유형</th>
+                          <td class="fs-6">{{ people.Service_Type or '-' }}</td>
+                        </tr>
+                        <tr>
+                          <th class="text-secondary fw-bold">업종 분류</th>
+                          <td class="fs-6">{{ people.Business_Type or '-' }} <span class="text-muted">/</span> {{ people.Business_Detail or '-' }}</td>
+                        </tr>
+                        <tr>
+                          <th class="text-secondary fw-bold">정기 레포트</th>
+                          <td class="fs-6">
+                            {% if people.Report_YN == '0' or people.Report_YN == 'Y' %}
+                              <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>발송함</span>
+                            {% else %}
+                              <span class="text-muted">미발송</span>
+                            {% endif %}
+                          </td>
+                        </tr>
+                        <tr><td colspan="2"><hr class="my-2 text-muted opacity-25"></td></tr>
+                        <tr>
+                          <th class="text-secondary fw-bold">개통일</th>
+                          <td class="fs-6">{{ people.Open_Date or '-' }}</td>
+                        </tr>
+                        <tr>
+                          <th class="text-secondary fw-bold">해지일</th>
+                          <td class="fs-6 {{ 'text-danger fw-bold' if people.Terminate_Date else '' }}">{{ people.Terminate_Date or '-' }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="card h-100 shadow-sm border-0">
+                  <div class="card-header bg-white py-3 border-bottom-0">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-geo-alt text-primary me-2"></i>위치 및 접속</h5>
+                  </div>
+                  <div class="card-body pt-0">
+                    <table class="table table-borderless mb-0 align-middle">
+                      <tbody>
+                        <tr>
+                          <th class="text-secondary fw-bold" style="width: 140px;">DC(데이터센터)</th>
+                          <td class="fs-6 fw-bold">{{ people.IDC or '-' }}</td>
+                        </tr>
+                        <tr>
+                          <th class="text-secondary fw-bold">Rack 위치</th>
+                          <td class="fs-6">{{ people.Rack_Location or '-' }}</td>
+                        </tr>
+                        <tr><td colspan="2"><hr class="my-2 text-muted opacity-25"></td></tr>
+
+                        <tr>
+                          <th class="text-secondary fw-bold">고객 폴더</th>
+                          <td>
+                            {% if people.Customer_Folder %}
+                              <div class="p-2 bg-light rounded text-break border fs-6">
+                                <a href="{{ people.Customer_Folder }}" target="_blank" class="text-decoration-none text-dark">{{ people.Customer_Folder }}</a>
+                              </div>
+                            {% else %}
+                              -
+                            {% endif %}
+                          </td>
+                        </tr>
+
+                        <tr>
+                          <th class="text-secondary fw-bold">서비스 URL</th>
+                          <td>
+                            {% if people.Service_URL__c %}
+                              <div class="p-2 bg-light rounded text-break border fs-6" style="white-space: pre-wrap;">{{ people.Service_URL__c }}</div>
+                            {% else %}
+                              -
+                            {% endif %}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="card shadow-sm border-0">
+                  <div class="card-header bg-white py-3 border-bottom-0">
+                    <h5 class="card-title mb-0 fw-bold"><i class="bi bi-hdd-network text-primary me-2"></i>부가 서비스 구성</h5>
+                  </div>
+                  <div class="card-body pt-0">
+                    <div class="table-responsive">
+                      <table class="table table-bordered align-middle mb-0">
+                        <thead class="table-light text-center">
+                          <tr>
+                            <th style="width: 15%;" class="fs-6">구분</th>
+                            <th style="width: 20%;" class="fs-6">항목</th>
+                            <th class="fs-6">상세 내용</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td rowspan="4" class="text-center bg-light fw-bold text-secondary fs-6">백업</td>
+                            <td class="text-center fw-bold text-secondary fs-6">사용 여부</td>
+                            <td class="fs-6">
+                                {% if people.Backup_Service == 'y' %}
+                                    <span class="text-primary fw-bold">사용함</span>
+                                {% else %}
+                                    <span class="text-muted">미사용</span>
+                                {% endif %}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="text-center fw-bold text-secondary fs-6">유형</td>
+                            <td class="fs-6">
+                               {% if people.Backup_Type|string == '0' %} 원격(전체)
+                               {% elif people.Backup_Type|string == '1' %} 원격(DB)
+                               {% elif people.Backup_Type|string == '2' %} 원격(File)
+                               {% elif people.Backup_Type|string == '3' %} 로컬(전체)
+                               {% elif people.Backup_Type|string == '4' %} 로컬(DB)
+                               {% elif people.Backup_Type|string == '5' %} 로컬(File)
+                               {% elif people.Backup_Type|string == '6' %} 소산
+                               {% elif people.Backup_Type|string == '7' %} 원격+소산
+                               {% elif people.Backup_Type|string == '8' %} 로컬+소산
+                               {% else %} {{ people.Backup_Type or '-' }} {% endif %}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td class="text-center fw-bold text-secondary fs-6">주기/용량</td>
+                            <td class="fs-6">{{ people.Backup_Period or '-' }}</td>
+                          </tr>
+                          <tr>
+                            <td class="text-center fw-bold text-secondary fs-6">백업 경로</td>
+                            <td class="font-monospace fs-6 text-dark">{{ people.Backup_Path or '-' }}</td>
+                          </tr>
+
+                          <tr>
+                            <td rowspan="2" class="text-center bg-light fw-bold text-secondary fs-6">보안</td>
+                            <td class="text-center fw-bold text-secondary fs-6">백신</td>
+                            <td class="fs-6 fw-bold">{{ people.Vaccine__c or '미설치' }}</td>
+                          </tr>
+                          <tr>
+                            <td class="text-center fw-bold text-secondary fs-6">쉘 모니터링</td>
+                            <td class="fs-6 fw-bold">{{ people.ShellMonitor__c or '미설치' }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="row g-4">
+                  <div class="col-md-6">
+                    <div class="card shadow-sm border-0 h-100">
+                      <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 fw-bold text-danger"><i class="bi bi-exclamation-circle me-2"></i>고객 특이사항</h5>
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#noteModalEtc">
+                          전체 보기
+                        </button>
+                      </div>
+                      <div class="card-body pt-0">
+                        <div class="p-3 bg-light rounded border text-secondary" style="min-height: 100px; max-height: 100px; overflow: hidden; position: relative;">
+                           {{ people.chEtc or '등록된 특이사항이 없습니다.' }}
+                           <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; background: linear-gradient(transparent, #f8f9fa);"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="card shadow-sm border-0 h-100">
+                      <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0 fw-bold text-warning"><i class="bi bi-shield-exclamation me-2"></i>침해 대응 이력</h5>
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#noteModalHistory">
+                          전체 보기
+                        </button>
+                      </div>
+                      <div class="card-body pt-0">
+                        <div class="p-3 bg-light rounded border text-secondary" style="min-height: 100px; max-height: 100px; overflow: hidden; position: relative;">
+                           {{ people.chHistory or '등록된 이력이 없습니다.' }}
+                           <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 40px; background: linear-gradient(transparent, #f8f9fa);"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div> </div>
           <!-- Assets Tab -->
           <div class="tab-pane fade" id="tab-assets">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -1303,6 +1461,39 @@
           <button type="submit" class="btn btn-primary">저장</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="noteModalEtc" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title fw-bold text-danger">고객 특이사항</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body bg-light p-4">
+        <div class="bg-white p-4 rounded border shadow-sm fs-6" style="white-space: pre-wrap; min-height: 300px;">{{ people.chEtc or '내용 없음' }}</div>
+      </div>
+      <div class="modal-footer border-top-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="noteModalHistory" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title fw-bold text-warning">침해 대응 이력</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body bg-light p-4">
+        <div class="bg-white p-4 rounded border shadow-sm fs-6" style="white-space: pre-wrap; min-height: 300px;">{{ people.chHistory or '내용 없음' }}</div>
+      </div>
+      <div class="modal-footer border-top-0">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+      </div>
     </div>
   </div>
 </div>
