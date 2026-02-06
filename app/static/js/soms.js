@@ -587,3 +587,31 @@ function deleteContract(contractId, personId) {
   fetch(`/customers/${personId}/contracts/${contractId}/delete`, { method: 'POST' })
     .then(() => location.reload());
 }
+
+  // 기존 soms.js의 함수들 포함
+  document.addEventListener('DOMContentLoaded', function() {
+    initializeSelect2();
+    const assetAddModal = document.getElementById('assetAddModal');
+    if (assetAddModal) {
+      assetAddModal.addEventListener('shown.bs.modal', function() {
+        if ($('#type').hasClass('select2-hidden-accessible')) {
+          $('#type').select2('destroy');
+        }
+        if ($('#item').hasClass('select2-hidden-accessible')) {
+          $('#item').select2('destroy');
+        }if ($('#maintenance_company').hasClass('select2-hidden-accessible')) {
+          $('#maintenance_company').select2('destroy');
+        }
+        if ($('#supplier').hasClass('select2-hidden-accessible')) {
+          $('#supplier').select2('destroy');
+        }
+        initializeSelect2();
+      });
+
+      assetAddModal.addEventListener('hidden.bs.modal', function() {
+        if ($('#type').length) $('#type').val('').trigger('change');
+        if ($('#item').length) $('#item').val(null).trigger('change');
+        if ($('#maintenance_company').length) $('#maintenance_company').val('12').trigger('change');
+        if ($('#supplier').length) $('#supplier').val(null).trigger('change');
+      });
+    }});

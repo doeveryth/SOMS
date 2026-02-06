@@ -222,67 +222,85 @@ def detail(person_id: str):
 @bp.post("/<person_id>/edit")
 @login_required
 def update_customer(person_id: str):
-    people = (
-        db.session.query(CTMPeople)
-        .filter(CTMPeople.Person_ID == person_id)
-        .first()
-    )
+    # 1. DB에서 사용자 조회
+    people = db.session.query(CTMPeople).filter(CTMPeople.Person_ID == person_id).first()
+
     if not people:
         flash("고객을 찾을 수 없습니다.", "warning")
         return redirect(url_for("customers.list_customers"))
 
-    company = request.form.get("Company", "").strip()
+    # 2. 필수값 체크
+    company = request.form.get("company", "").strip()
     if not company:
         flash("고객명은 필수입니다.", "danger")
         return redirect(url_for("customers.detail", person_id=person_id))
 
-    # 기본 정보
-    people.Company = company
-    people.Last_Name = request.form.get("Last_Name") or None
-    people.Service_Type = request.form.get("Service_Type") or None
-    people.Client_Type = request.form.get("Client_Type") or None
-    people.Service_Status = request.form.get("Service_Status") or None
+    # --- [이미지(엑셀) 기준 필드 매핑] ---
 
-    # 날짜 정보
-    people.Open_Date = _parse_date(request.form.get("Open_Date"))
-    people.Terminate_Date = _parse_date(request.form.get("Terminate_Date"))
+    # [1] 기본 정보 (Green Zone)
+    people.Company = company  # 고객명(1)
+    people.Last_Name = request.form.get("last_name") or None  # 고객명(2) - 사이트명
 
-    # 담당자 및 계약 정보
-    people.Sales_Manager = request.form.get("Sales_Manager") or None
-    people.contract_memo__c = request.form.get("contract_memo__c") or None
-    people.Service_Contract_Amount__c = request.form.get("Service_Contract_Amount__c") or None
+    # 엑셀: First_Name (서비스유형) -> DB: Service_Type
+    people.Service_Type = request.form.get("service_type") or None
 
-    # IDC 정보
-    people.IDC = request.form.get("IDC") or None
-    people.Rack_Location = request.form.get("Rack_Location") or None
+    # 엑셀: Profile_Status (프로파일 상태) -> DB: Service_Status
+    people.Service_Status = request.form.get("profile_status") or None
 
-    # 고객 특성
-    people.Client_Sensitivity = request.form.get("Client_Sensitivity") or None
-    people.Report_YN = request.form.get("Report_YN") or None
+    # [2] 업종 정보 (Green Zone)
+    # 엑셀: type_of_business__c -> DB: Business_Type
+    people.Business_Type = request.form.get("industry_category") or None
+    # 엑셀: type_of_business_detail__c -> DB: Business_Detail
+    people.Business_Detail = request.form.get("industry_detail") or None
 
-    # 폴더 및 URL
-    people.Customer_Folder = request.form.get("Customer_Folder") or None
-    people.Customer_Folder_Detail = request.form.get("Customer_Folder_Detail") or None
-    people.Service_URL__c = request.form.get("Service_URL__c") or None
+    # [3] 민감도/레포트 (Green Zone)
+    people.Client_Sensitivity = request.form.get("client_sensitivity") or None  # 고객민감도
+    people.Report_YN = request.form.get("report_yn") or None  # 레포트
 
-    # 업종 정보
-    people.Business_Type = request.form.get("Business_Type") or None
-    people.Business_Detail = request.form.get("Business_Detail") or None
+    # [4] 서비스 URL 및 번호, 폴더
+    # 엑셀: 서비스_URL__c -> DB: Service_URL__c
+    people.Service_URL__c = request.form.get("service_url") or None
+    # 엑셀: chServiceNumber__c -> DB: Service_Number
+    people.Service_Number = request.form.get("service_number") or None
+    # 엑셀: 고객_폴더__c -> DB: Customer_Folder
+    people.Customer_Folder = request.form.get("customer_folder") or None
 
-    # 백업 정보
-    people.Backup_Service = request.form.get("Backup_Service") or None
-    people.Backup_Type = request.form.get("Backup_Type") or None
-    people.Backup_Period = request.form.get("Backup_Period") or None
-    people.Backup_Path = request.form.get("Backup_Path") or None
+    # [5] 계약 및 위치 정보 (Yellow/Green Zone)
+    # 엑셀: 개통일__c -> DB: Open_Date
+    people.Open_Date = _parse_date(request.form.get("open_date"))
+    # 엑셀: 해지일__c -> DB: Terminate_Date
+    people.Terminate_Date = _parse_date(request.form.get("close_date"))
 
-    # 보안 솔루션
-    people.Vaccine__c = request.form.get("Vaccine__c") or None
-    people.ShellMonitor__c = request.form.get("ShellMonitor__c") or None
+    # 엑셀: Site (IDC) -> DB: IDC
+    people.IDC = request.form.get("dc_location") or None
+    # 엑셀: Desk_Location (랙위치) -> DB: Rack_Location
+    people.Rack_Location = request.form.get("rack_location") or None
 
-    # 특이사항
-    people.chHistory = request.form.get("chHistory") or None
-    people.chEtc = request.form.get("chEtc") or None
-    people.Other_Info = request.form.get("Other_Info") or None
+    # [6] 백업 정보 (Green Zone)
+    # 엑셀: 백업서비스_유무__c -> DB: Backup_Service
+    people.Backup_Service = request.form.get("backup_service_yn") or None
+    # 엑셀: 백업서비스_유형__c -> DB: Backup_Type
+    people.Backup_Type = request.form.get("backup_type") or None
+    # 엑셀: 백업볼륨__c -> DB: Backup_Period (주기/볼륨)
+    people.Backup_Period = request.form.get("backup_period_volume") or None
+    # 엑셀: 백업_볼륨__c (헤더: 백업경로) -> DB: Backup_Path
+    people.Backup_Path = request.form.get("backup_path") or None
+
+    # [7] 보안 솔루션 (Green Zone)
+    people.Vaccine__c = request.form.get("vaccine_yn") or None  # 백신
+    people.ShellMonitor__c = request.form.get("shell_monitor_yn") or None  # 쉘모니터
+
+    # [8] 메모 및 특이사항 (※이미지 헤더 기준 매핑 수정됨※)
+    # 엑셀 헤더: "침탐 특이사항" (chHistory) -> HTML: intrusion_notes
+    people.chHistory = request.form.get("intrusion_notes") or None
+
+    # 엑셀 헤더: "고객 특이사항" (chEtc) -> HTML: customer_notes
+    people.chEtc = request.form.get("customer_notes") or None
+
+    # [제외된 빨간색 영역]
+    # Submitter, Submit_Date, Last_Modifier, Last_Modify_Date
+    # Remedy_Login_ID, External_Password
+    # Organization, Department, Manager_Request, Issue_Dashboard 등은 제외됨
 
     db.session.commit()
     flash("고객 정보가 수정되었습니다.", "success")
