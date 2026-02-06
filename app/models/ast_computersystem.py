@@ -1,6 +1,5 @@
 from app import db
 from sqlalchemy import event
-from sqlalchemy.orm import validates
 import re
 from datetime import datetime
 
@@ -28,12 +27,23 @@ class AST_Computer_System(db.Model):
     Serial_Number = db.Column(db.Text)
     Description = db.Column(db.Text)
     Service_URL__c = db.Column(db.Text)
+    IP_Address = db.Column(db.Text)
+    Region = db.Column(db.Text)
+    IDC_Site = db.Column(db.Text)
 
     # 상태 및 관리
     AssetLifecycleStatus = db.Column(db.Integer, default=0)
-    유지보수업체__c = db.Column(db.Integer, default=0)
     Supported = db.Column(db.Integer, default=0)
-    운영모드__c = db.Column(db.Integer, default=0)
+
+    # 운영 정보
+    Maintenance_Company = db.Column(db.Integer, default=0)
+    Operation_Company = db.Column(db.Integer, default=0)
+    Operation_Mode = db.Column(db.Integer, default=0)
+
+    # 제품 정보
+    Product_Name = db.Column(db.Text)
+    Supplier = db.Column(db.Text)
+    Owner = db.Column(db.Text)
 
     # 백업 설정
     C_backup = db.Column(db.Integer, default=1)
@@ -47,10 +57,11 @@ class AST_Computer_System(db.Model):
     InstallationDate = db.Column(db.Date)
     Available_Date = db.Column(db.Date)
     Disposal_Date = db.Column(db.Date)
+    License_Expiry_Date = db.Column(db.Date)
     ReturnDate = db.Column(db.Date)
     LastScanDate = db.Column(db.Date, default=datetime.now)
 
-    # Relationship - 문자열로 참조
+    # Relationship
     people = db.relationship('CTMPeople', backref='assets', lazy=True)
 
     TYPE_ABBREVIATION_MAP = {

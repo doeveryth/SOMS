@@ -649,26 +649,26 @@
             </div>
           </div><div class="row g-3 mt-2">
             <div class="col-md-6">
-              <label for="product_name" class="form-label text-danger">제품명 *</label>
+              <label for="product_name" class="form-label">제품명</label>
               <input type="text" class="form-control" id="product_name" name="product_name"
-                     placeholder="예: FortiGate, Cisco ASA" required>
+                     placeholder="예: iwall-2000, SSG-500">
             </div>
             <div class="col-md-6">
-              <label for="model_number" class="form-label text-danger">버전/모델 *</label>
+              <label for="model_number" class="form-label">버전/모델</label>
               <input type="text" class="form-control" id="model_number" name="model_number"
-                     placeholder="예: PA-3020, v7.2.4" required>
+                     placeholder="예: v7.2.4">
             </div>
           </div>
 
           <div class="row g-3 mt-2">
             <div class="col-md-6">
-              <label for="manufacturer_name" class="form-label text-danger">제조업체 *</label>
+              <label for="manufacturer_name" class="form-label">제조사</label>
               <input type="text" class="form-control" id="manufacturer_name" name="manufacturer_name"
-                     placeholder="예: Palo Alto, Cisco, Fortinet" required>
+                     placeholder="예: ICTIS, Cisco, Fortinet">
             </div>
             <div class="col-md-6">
-              <label for="supplier" class="form-label">공급자명</label>
-              <select class="form-select" id="supplier" name="supplier">
+              <label for="supplier" class="form-label text-danger">공급자명 *</label>
+              <select class="form-select" id="supplier" name="supplier" required>
                 <option value="">-- 선택 (선택사항) --</option>
                 <option value="ICTIS">ICTIS</option>
                 <option value="고객소유">고객소유</option>
@@ -698,9 +698,8 @@
                       <input type="text" class="form-control" id="serial_number" name="serial_number">
                     </div>
                     <div class="col-md-6">
-                      <label for="ip_info" class="form-label">IP 주소</label>
-                      <input type="text" class="form-control" id="ip_info" name="ip_info"
-                             placeholder="예: 192.168.1.1">
+                      <label for="ip_info" class="form-label">IP 정보</label>
+                      <input type="text" class="form-control" id="ip_info" name="ip_info">
                     </div>
                     <div class="col-md-12">
                       <label for="ci_note" class="form-label">장비 특이사항</label>
@@ -727,7 +726,7 @@
                     <div class="col-md-6">
                       <label for="maintenance_company" class="form-label">유지보수업체</label>
                       <select class="form-select" id="maintenance_company" name="maintenance_company">
-                        <option value="12" selected>없음</option>
+                        <option value="12">없음</option>
                         <option value="0">ICTIS</option>
                         <option value="1">에스에이정보기술</option>
                         <option value="2">블루시큐어</option>
@@ -739,7 +738,7 @@
                         <option value="8">인스테크</option>
                         <option value="9">쿼리시스템즈</option>
                         <option value="10">에스디씨디엠</option>
-                        <option value="11">고객사 유지보수</option>
+                        <option value="11" selected>고객사 유지보수</option>
                         <option value="13">윈스</option>
                       </select>
                     </div>
@@ -748,7 +747,6 @@
                       <select class="form-select" id="operation_company" name="operation_company">
                         <option value="0" selected>ICTIS</option>
                         <option value="1">고객사</option>
-                        <option value="2">N/A</option>
                       </select>
                     </div>
                     <div class="col-md-6">
@@ -773,7 +771,7 @@
               <h2 class="accordion-header">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                         data-bs-target="#collapseBackup">
-                  백업 설정 (선택사항)
+                  컨피그 백업 설정 (선택사항)
                 </button>
               </h2>
               <div id="collapseBackup" class="accordion-collapse collapse"
@@ -781,7 +779,7 @@
                 <div class="accordion-body">
                   <div class="row g-3">
                     <div class="col-md-4">
-                      <label for="c_backup" class="form-label">CFG 백업</label>
+                      <label for="c_backup" class="form-label">컨피그 백업</label>
                       <select class="form-select" id="c_backup" name="c_backup">
                         <option value="0" selected>YES</option>
                         <option value="1">NO</option>
@@ -790,13 +788,13 @@
                     <div class="col-md-4">
                       <label for="c_cycle" class="form-label">백업 주기</label>
                       <select class="form-select" id="c_cycle" name="c_cycle">
-                        <option value="0" selected>Daily</option>
+                        <option value="0">Daily</option>
                         <option value="1">Weekly</option>
-                        <option value="2">Monthly</option>
+                        <option value="2" selected>Monthly</option>
                       </select>
                     </div>
                     <div class="col-md-4">
-                      <label for="cfg_note" class="form-label">백업 특이사항</label>
+                      <label for="cfg_note" class="form-label">특이사항</label>
                       <input type="text" class="form-control" id="cfg_note" name="cfg_note">
                     </div>
                   </div>

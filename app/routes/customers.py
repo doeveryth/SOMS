@@ -236,17 +236,54 @@ def update_customer(person_id: str):
         flash("고객명은 필수입니다.", "danger")
         return redirect(url_for("customers.detail", person_id=person_id))
 
+    # 기본 정보
     people.Company = company
     people.Last_Name = request.form.get("Last_Name") or None
     people.Service_Type = request.form.get("Service_Type") or None
     people.Client_Type = request.form.get("Client_Type") or None
+    people.Service_Status = request.form.get("Service_Status") or None
+
+    # 날짜 정보
     people.Open_Date = _parse_date(request.form.get("Open_Date"))
     people.Terminate_Date = _parse_date(request.form.get("Terminate_Date"))
-    people.chHistory = request.form.get("chHistory") or None
-    people.chEtc = request.form.get("chEtc") or None
+
+    # 담당자 및 계약 정보
     people.Sales_Manager = request.form.get("Sales_Manager") or None
     people.contract_memo__c = request.form.get("contract_memo__c") or None
     people.Service_Contract_Amount__c = request.form.get("Service_Contract_Amount__c") or None
+
+    # IDC 정보
+    people.IDC = request.form.get("IDC") or None
+    people.Rack_Location = request.form.get("Rack_Location") or None
+
+    # 고객 특성
+    people.Client_Sensitivity = request.form.get("Client_Sensitivity") or None
+    people.Report_YN = request.form.get("Report_YN") or None
+
+    # 폴더 및 URL
+    people.Customer_Folder = request.form.get("Customer_Folder") or None
+    people.Customer_Folder_Detail = request.form.get("Customer_Folder_Detail") or None
+    people.Service_URL__c = request.form.get("Service_URL__c") or None
+
+    # 업종 정보
+    people.Business_Type = request.form.get("Business_Type") or None
+    people.Business_Detail = request.form.get("Business_Detail") or None
+
+    # 백업 정보
+    people.Backup_Service = request.form.get("Backup_Service") or None
+    people.Backup_Type = request.form.get("Backup_Type") or None
+    people.Backup_Period = request.form.get("Backup_Period") or None
+    people.Backup_Path = request.form.get("Backup_Path") or None
+
+    # 보안 솔루션
+    people.Vaccine__c = request.form.get("Vaccine__c") or None
+    people.ShellMonitor__c = request.form.get("ShellMonitor__c") or None
+
+    # 특이사항
+    people.chHistory = request.form.get("chHistory") or None
+    people.chEtc = request.form.get("chEtc") or None
+    people.Other_Info = request.form.get("Other_Info") or None
+
     db.session.commit()
     flash("고객 정보가 수정되었습니다.", "success")
     return redirect(url_for("customers.detail", person_id=person_id))
@@ -477,3 +514,259 @@ def generate_unique_ci_name(owner_name, type_abbr):
     # 다음 인덱스 계산
     next_index = max(existing_indices) + 1 if existing_indices else 1
     return f"{base_name}_{next_index}"
+
+
+@bp.get("/<person_id>/ci/<int:asset_id>/edit")
+@login_required
+def edit_ci_form(person_id: str, asset_id: int):
+    """보안장비 수정 폼 로드"""
+    item = db.session.get(AST_Computer_System, asset_id)
+    if not item or item.Person_ID != person_id:
+        return {"ok": False, "message": "보안장비를 찾을 수 없습니다."}, 404
+
+    return {
+        "ok": True,
+        "data": {
+            "asset_id": item.Asset_ID,
+            "name": item.Name,
+            "category": item.Category,
+            "type": item.Type,
+            "item": item.Item,
+            "model_number": item.Model_Number,
+            "version_number": item.Version_Number,
+            "manufacturer_name": item.Manufacturer_Name,
+            "serial_number": item.Serial_Number,
+            "description": item.Description,
+            "service_url": item.Service_URL__c,
+            "lifecycle_status": item.AssetLifecycleStatus,
+            "supported": item.Supported,
+            "c_backup": item.C_backup,
+            "c_cycle": item.C_cycle,
+            "cfg_note": item.C_note,
+            "ci_note": item.Short_Description,
+            "ip_info": item.IP_Address,
+            "region": item.Region,
+            "idc_site": item.IDC_Site,
+            "maintenance_company": item.Maintenance_Company,
+            "operation_company": item.Operation_Company,
+            "operation_mode": item.Operation_Mode,
+            "product_name": item.Product_Name,
+            "supplier": item.Supplier,
+            "owner": item.Owner,
+            "installation_date": item.InstallationDate.isoformat() if item.InstallationDate else "",
+            "disposal_date": item.Disposal_Date.isoformat() if item.Disposal_Date else "",
+            "license_expiry": item.License_Expiry_Date.isoformat() if item.License_Expiry_Date else "",
+        }
+    }
+
+
+@bp.post("/<person_id>/ci/<int:asset_id>/edit")
+@login_required
+def update_ci(person_id: str, asset_id: int):
+    """보안장비 수정"""
+    item = db.session.get(AST_Computer_System, asset_id)
+    if not item or item.Person_ID != person_id:
+        flash("보안장비를 찾을 수 없습니다.", "warning")
+        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-assets"))
+
+    item.Category = request.form.get('category')
+    item.Type = request.form.get('type')
+    item.Item = request.form.get('item')
+    item.Model_Number = request.form.get('model_number')
+    item.Version_Number = request.form.get('version_number')
+    item.Manufacturer_Name = request.form.get('manufacturer_name')
+    item.Serial_Number = request.form.get('serial_number')
+    item.Description = request.form.get('description')
+    item.Service_URL__c = request.form.get('service_url')
+    item.AssetLifecycleStatus = int(request.form.get('lifecycle_status', 3))
+    item.Supported = int(request.form.get('supported', 0))
+    item.C_backup = int(request.form.get('c_backup', 0))
+    item.C_cycle = int(request.form.get('c_cycle')) if request.form.get('c_cycle') else None
+    item.C_note = request.form.get('cfg_note')
+    item.Short_Description = request.form.get('ci_note')
+    item.IP_Address = request.form.get('ip_info')
+    item.Region = request.form.get('region')
+    item.IDC_Site = request.form.get('idc_site')
+    item.Maintenance_Company = int(request.form.get('maintenance_company', 0))
+    item.Operation_Company = int(request.form.get('operation_company', 0))
+    item.Operation_Mode = int(request.form.get('operation_mode', 0))
+    item.Product_Name = request.form.get('product_name')
+    item.Supplier = request.form.get('supplier')
+    item.Owner = request.form.get('owner')
+
+    date_fields = {
+        'installation_date': 'InstallationDate',
+        'disposal_date': 'Disposal_Date',
+        'license_expiry': 'License_Expiry_Date'
+    }
+    for field, attr in date_fields.items():
+        date_str = request.form.get(field)
+        if date_str:
+            try:
+                setattr(item, attr, datetime.strptime(date_str, '%Y-%m-%d').date())
+            except ValueError:
+                pass
+
+    db.session.commit()
+    flash("보안장비가 수정되었습니다.", "success")
+    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-assets"))
+
+
+@bp.get("/<person_id>/servers/<int:server_id>/edit")
+@login_required
+def edit_server_form(person_id: str, server_id: int):
+    """서버 수정 폼 로드"""
+    item = db.session.get(ServerInfo, server_id)
+    if not item or item.Person_ID != person_id:
+        return {"ok": False, "message": "서버를 찾을 수 없습니다."}, 404
+
+    return {
+        "ok": True,
+        "data": {
+            "server_id": item.Server_ID,
+            "chServerName": item.chServerName,
+            "chServerInfo": item.chServerInfo,
+        }
+    }
+
+
+@bp.post("/<person_id>/servers/<int:server_id>/edit")
+@login_required
+def update_server(person_id: str, server_id: int):
+    """서버 수정"""
+    item = db.session.get(ServerInfo, server_id)
+    if not item or item.Person_ID != person_id:
+        flash("서버를 찾을 수 없습니다.", "warning")
+        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-servers"))
+
+    item.chServerName = request.form.get('chServerName')
+    item.chServerInfo = request.form.get('chServerInfo')
+    db.session.commit()
+    flash("서버가 수정되었습니다.", "success")
+    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-servers"))
+
+
+@bp.get("/<person_id>/contacts/<int:contact_id>/edit")
+@login_required
+def edit_contact_form(person_id: str, contact_id: int):
+    """담당자 수정 폼 로드"""
+    item = db.session.get(Contact, contact_id)
+    if not item or item.Person_ID != person_id:
+        return {"ok": False, "message": "담당자를 찾을 수 없습니다."}, 404
+
+    return {
+        "ok": True,
+        "data": {
+            "contact_id": item.Contact_ID,
+            "role_type": item.Role_Type,
+            "name": item.Name,
+            "phone": item.Phone,
+            "email": item.Email,
+            "status": item.Status,
+            "sms_receive_yn": item.SMS_Receive_YN,
+            "report_receive_yn": item.Report_Receive_YN,
+        }
+    }
+
+
+@bp.post("/<person_id>/contacts/<int:contact_id>/edit")
+@login_required
+def update_contact(person_id: str, contact_id: int):
+    """담당자 수정"""
+    item = db.session.get(Contact, contact_id)
+    if not item or item.Person_ID != person_id:
+        flash("담당자를 찾을 수 없습니다.", "warning")
+        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-contacts"))
+
+    item.Role_Type = request.form.get('role_type')
+    item.Name = request.form.get('name')
+    item.Phone = request.form.get('phone')
+    item.Email = request.form.get('email')
+    item.Status = request.form.get('status')
+    item.SMS_Receive_YN = request.form.get('sms_receive_yn')
+    item.Report_Receive_YN = request.form.get('report_receive_yn')
+    db.session.commit()
+    flash("담당자가 수정되었습니다.", "success")
+    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-contacts"))
+
+
+@bp.get("/<person_id>/contracts/<int:contract_id>/edit")
+@login_required
+def edit_contract_form(person_id: str, contract_id: int):
+    """계약 수정 폼 로드"""
+    item = db.session.get(Contract, contract_id)
+    if not item or item.Person_ID != person_id:
+        return {"ok": False, "message": "계약을 찾을 수 없습니다."}, 404
+
+    return {
+        "ok": True,
+        "data": {
+            "contract_id": item.Contract_ID,
+            "contract_name": item.Contract_Name,
+            "contract_amount": item.Contract_Amount,
+            "currency": item.Currency,
+            "contract_start_date": item.Contract_Start_Date.isoformat() if item.Contract_Start_Date else "",
+            "contract_end_date": item.Contract_End_Date.isoformat() if item.Contract_End_Date else "",
+            "contract_notes": item.Contract_Notes,
+        }
+    }
+
+
+@bp.post("/<person_id>/contracts/<int:contract_id>/edit")
+@login_required
+def update_contract(person_id: str, contract_id: int):
+    """계약 수정"""
+    item = db.session.get(Contract, contract_id)
+    if not item or item.Person_ID != person_id:
+        flash("계약을 찾을 수 없습니다.", "warning")
+        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-contracts"))
+
+    item.Contract_Name = request.form.get('contract_name')
+    item.Contract_Amount = request.form.get('contract_amount')
+    item.Currency = request.form.get('currency')
+    item.Contract_Start_Date = _parse_date(request.form.get('contract_start_date'))
+    item.Contract_End_Date = _parse_date(request.form.get('contract_end_date'))
+    item.Contract_Notes = request.form.get('contract_notes')
+    db.session.commit()
+    flash("계약이 수정되었습니다.", "success")
+    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-contracts"))
+
+@bp.post("/<person_id>/work")
+@login_required
+def add_work(person_id: str):
+    people = (
+        db.session.query(CTMPeople)
+        .filter(CTMPeople.Person_ID == person_id)
+        .first()
+    )
+    if not people:
+        flash("고객을 찾을 수 없습니다.", "warning")
+        return redirect(url_for("customers.list_customers"))
+
+    work_type = request.form.get("Work_Type", "").strip()
+    work_date_str = request.form.get("Work_Date", "").strip()
+    work_detail = request.form.get("Work_Detail", "").strip()
+
+    if not work_type or not work_date_str or not work_detail:
+        flash("필수 항목을 모두 입력하세요.", "danger")
+        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-work"))
+
+    try:
+        work_date = datetime.strptime(work_date_str, "%Y-%m-%d").date()
+    except ValueError:
+        flash("작업일 형식이 올바르지 않습니다.", "danger")
+        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-work"))
+
+    work = WorkInfo(
+        Person_ID=person_id,
+        Work_Type=work_type,
+        Work_Date=work_date,
+        Work_Detail=work_detail,
+        Severity=request.form.get("Severity") or None,
+        Submitter=current_user.user_id,
+        Create_Date=datetime.utcnow(),
+    )
+    db.session.add(work)
+    db.session.commit()
+    flash("작업이 등록되었습니다.", "success")
+    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-work"))

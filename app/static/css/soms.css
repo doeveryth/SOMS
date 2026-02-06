@@ -14,7 +14,22 @@
   --sidebar-w: 264px;
 }
 
-html, body{ height: 100%; }
+html, body {
+  height: 100%;
+}
+
+.sticky-top {
+  z-index: 1020 !important;
+}
+
+.modal {
+  z-index: 1055 !important;
+}
+
+.modal-backdrop {
+  z-index: 1050 !important;
+}
+
 
 body.soms-bg{
   background: var(--muted-surface);

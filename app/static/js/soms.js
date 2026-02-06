@@ -384,3 +384,206 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+// 보안장비 수정 모달 열기
+async function editAsset(assetId, personId) {
+  const modal = new bootstrap.Modal(document.getElementById('assetEditModal'));
+  const form = document.getElementById('assetEditForm');
+  const body = document.getElementById('assetEditBody');
+
+  try {
+    const res = await fetch(`/customers/${personId}/ci/${assetId}/edit`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      alert(data.message || '로드에 실패했습니다.');
+      return;
+    }
+
+    const d = data.data;
+    body.innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">분류</label>
+          <input type="text" class="form-control" name="category" value="${d.category || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">유형</label>
+          <input type="text" class="form-control" name="type" value="${d.type || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">품목</label>
+          <input type="text" class="form-control" name="item" value="${d.item || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">모델명</label>
+          <input type="text" class="form-control" name="model_number" value="${d.model_number || ''}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">설명</label>
+          <textarea class="form-control" name="description" rows="3">${d.description || ''}</textarea>
+        </div></div>
+    `;
+
+    form.action = `/customers/${personId}/ci/${assetId}/edit`;
+    modal.show();
+  } catch (err) {
+    alert('로드에 실패했습니다.');
+  }
+}
+
+// 서버 수정 모달 열기
+async function editServer(serverId, personId) {
+  const modal = new bootstrap.Modal(document.getElementById('serverEditModal'));
+  const form = document.getElementById('serverEditForm');
+  const body = document.getElementById('serverEditBody');
+
+  try {
+    const res = await fetch(`/customers/${personId}/servers/${serverId}/edit`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      alert(data.message || '로드에 실패했습니다.');
+      return;
+    }
+
+    const d = data.data;
+    body.innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">서버명</label>
+          <input type="text" class="form-control" name="chServerName" value="${d.chServerName || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">서버정보</label>
+          <input type="text" class="form-control" name="chServerInfo" value="${d.chServerInfo || ''}">
+        </div>
+      </div>
+    `;
+
+    form.action = `/customers/${personId}/servers/${serverId}/edit`;
+    modal.show();
+  } catch (err) {
+    alert('로드에 실패했습니다.');
+  }
+}
+
+// 담당자 수정 모달 열기
+async function editContact(contactId, personId) {
+  const modal = new bootstrap.Modal(document.getElementById('contactEditModal'));
+  const form = document.getElementById('contactEditForm');
+  const body = document.getElementById('contactEditBody');
+
+  try {
+    const res = await fetch(`/customers/${personId}/contacts/${contactId}/edit`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      alert(data.message || '로드에 실패했습니다.');
+      return;
+    }
+
+    const d = data.data;
+    body.innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">역할</label>
+          <input type="text" class="form-control" name="role_type" value="${d.role_type || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">이름</label>
+          <input type="text" class="form-control" name="name" value="${d.name || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">전화</label>
+          <input type="text" class="form-control" name="phone" value="${d.phone || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">이메일</label>
+          <input type="email" class="form-control" name="email" value="${d.email || ''}">
+        </div>
+      </div>
+    `;
+
+    form.action = `/customers/${personId}/contacts/${contactId}/edit`;
+    modal.show();
+  } catch (err) {
+    alert('로드에 실패했습니다.');
+  }
+}
+
+// 계약 수정 모달 열기
+async function editContract(contractId, personId) {
+  const modal = new bootstrap.Modal(document.getElementById('contractEditModal'));
+  const form = document.getElementById('contractEditForm');
+  const body = document.getElementById('contractEditBody');
+
+  try {
+    const res = await fetch(`/customers/${personId}/contracts/${contractId}/edit`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      alert(data.message || '로드에 실패했습니다.');
+      return;
+    }
+
+    const d = data.data;
+    body.innerHTML = `
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label">계약명</label>
+          <input type="text" class="form-control" name="contract_name" value="${d.contract_name || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">금액</label>
+          <input type="text" class="form-control" name="contract_amount" value="${d.contract_amount || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">통화</label>
+          <input type="text" class="form-control" name="currency" value="${d.currency || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">계약시작일</label>
+          <input type="date" class="form-control" name="contract_start_date" value="${d.contract_start_date || ''}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">계약종료일</label>
+          <input type="date" class="form-control" name="contract_end_date" value="${d.contract_end_date || ''}">
+        </div>
+        <div class="col-12">
+          <label class="form-label">비고</label>
+          <textarea class="form-control" name="contract_notes" rows="3">${d.contract_notes || ''}</textarea>
+        </div>
+      </div>
+    `;
+
+    form.action = `/customers/${personId}/contracts/${contractId}/edit`;
+    modal.show();
+  } catch (err) {
+    alert('로드에 실패했습니다.');
+  }
+}
+
+// 삭제 함수들
+function deleteAsset(assetId, personId) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  fetch(`/customers/${personId}/ci/${assetId}/delete`, { method: 'POST' })
+    .then(() => location.reload());
+}
+
+function deleteServer(serverId, personId) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  fetch(`/customers/${personId}/servers/${serverId}/delete`, { method: 'POST' })
+    .then(() => location.reload());
+}
+
+function deleteContact(contactId, personId) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  fetch(`/customers/${personId}/contacts/${contactId}/delete`, { method: 'POST' })
+    .then(() => location.reload());
+}
+
+function deleteContract(contractId, personId) {
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  fetch(`/customers/${personId}/contracts/${contractId}/delete`, { method: 'POST' })
+    .then(() => location.reload());
+}
