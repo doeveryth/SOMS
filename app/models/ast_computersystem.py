@@ -61,6 +61,9 @@ class AST_Computer_System(db.Model):
     ReturnDate = db.Column(db.Date)
     LastScanDate = db.Column(db.Date, default=datetime.now)
 
+    Submitter = db.Column(db.Text)
+    Update_Date = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
     # Relationship
     people = db.relationship('CTMPeople', backref='assets', lazy=True)
 

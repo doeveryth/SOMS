@@ -54,3 +54,6 @@ class CTMPeople(db.Model):
 
     notes = relationship("CustomerNote", back_populates="people", lazy="dynamic")
     work_items = relationship("WorkInfo", back_populates="people", lazy="dynamic")
+
+    Contract_Amount = db.Column(db.String(100), nullable=True)  # 계약 금액
+    Contract_Note = db.Column(db.Text, nullable=True)  # 계약 특이사항
