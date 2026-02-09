@@ -1,62 +1,80 @@
-from datetime import datetime, timedelta, date
-import calendar
 from flask import Blueprint, render_template
-from flask_login import login_required
+from datetime import date
+import calendar
+from sqlalchemy import desc
 
 from ..extensions import db
-from ..models.customer_notes import CustomerNote
 from ..models.work_info import WorkInfo
-from ..models.sr_ticket import SRTicket
+from ..models.ctm_people import CTMPeople
+from ..models.sr_ticket import SRTicket  # [추가] SR 모델 임포트
 
-bp = Blueprint("dashboard", __name__, url_prefix="/")
+bp = Blueprint('dashboard', __name__, url_prefix='/')
 
 
-@bp.get("/")
-@login_required
+@bp.route('/')
 def index():
-    now = datetime.utcnow()
-    since = now - timedelta(days=7)
-
-    recent_notes = (
-        db.session.query(CustomerNote)
-        .filter(CustomerNote.Created_At >= since)
-        .order_by(CustomerNote.Created_At.desc())
-        .limit(10)
-        .all()
-    )
-
-    recent_work = (
-        db.session.query(WorkInfo)
-        .filter(WorkInfo.Create_Date >= since)
-        .order_by(WorkInfo.Create_Date.desc())
-        .limit(10)
-        .all()
-    )
-
     today = date.today()
-    year, month = today.year, today.month
-    cal = calendar.Calendar(firstweekday=6)
-    weeks = cal.monthdatescalendar(year, month)
-    start = weeks[0][0]
-    end = weeks[-1][-1]
+    year = today.year
+    month = today.month
 
-    sr_items = (
-        db.session.query(SRTicket)
-        .filter(SRTicket.request_date >= start)
-        .filter(SRTicket.request_date <= end)
-        .order_by(SRTicket.request_date.asc(), SRTicket.sr_id.asc())
+    # ---------------------------------------------------------
+    # [1] 달력 데이터 (작업 일정)
+    # ---------------------------------------------------------
+    cal = calendar.Calendar(firstweekday=6)
+    cal_weeks = cal.monthdatescalendar(year, month)
+
+    start_date = cal_weeks[0][0]
+    end_date = cal_weeks[-1][-1]
+
+    calendar_works = (
+        db.session.query(WorkInfo, CTMPeople)
+        .join(CTMPeople, WorkInfo.Person_ID == CTMPeople.Person_ID)
+        .filter(WorkInfo.Work_Date >= start_date)
+        .filter(WorkInfo.Work_Date <= end_date)
+        .order_by(WorkInfo.Work_Date.asc())
         .all()
     )
-    sr_by_day: dict[date, list[SRTicket]] = {}
-    for it in sr_items:
-        sr_by_day.setdefault(it.request_date, []).append(it)
+
+    sr_by_day = {}
+    for w, p in calendar_works:
+        if w.Work_Date not in sr_by_day:
+            sr_by_day[w.Work_Date] = []
+
+        sr_by_day[w.Work_Date].append({
+            'id': w.Work_ID,
+            'company': p.Company,
+            'location': p.Last_Name,
+            'type': w.Work_Type
+        })
+
+    # ---------------------------------------------------------
+    # [2] 최근 SR (Service Request) - 5건 [변경됨]
+    # ---------------------------------------------------------
+    recent_sr = (
+        db.session.query(SRTicket)
+        .order_by(SRTicket.request_date.desc(), SRTicket.sr_id.desc())
+        .limit(5)
+        .all()
+    )
+
+    # ---------------------------------------------------------
+    # [3] 계약 만료 임박
+    # ---------------------------------------------------------
+    expiring_contracts = (
+        db.session.query(CTMPeople)
+        .filter(CTMPeople.Terminate_Date != None)
+        .filter(CTMPeople.Terminate_Date >= today)
+        .order_by(CTMPeople.Terminate_Date.asc())
+        .limit(5)
+        .all()
+    )
 
     return render_template(
-        "dashboard/index.html",
-        recent_notes=recent_notes,
-        recent_work=recent_work,
+        'dashboard/index.html',
         cal_year=year,
         cal_month=month,
-        cal_weeks=weeks,
+        cal_weeks=cal_weeks,
         sr_by_day=sr_by_day,
+        recent_sr=recent_sr,  # [변경] recent_work -> recent_sr 전달
+        expiring_contracts=expiring_contracts
     )

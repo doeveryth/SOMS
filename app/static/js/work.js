@@ -5,22 +5,19 @@
 
 let currentDetailId = null;
 
-// [1] 상세 정보 로드 (우측 패널)
+// [1] 상세 정보 로드 (우측 패널) - 변경 없음
 function loadWorkDetail(workId, rowElem) {
     currentDetailId = workId;
 
-    // 테이블 행 활성화 스타일 적용
     document.querySelectorAll('tr').forEach(r => r.classList.remove('table-active'));
     if(rowElem) rowElem.classList.add('table-active');
 
     const panel = document.getElementById('detailPanelBody');
     const actions = document.getElementById('detailActions');
 
-    // 로딩 표시
     panel.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div></div>';
     actions.classList.add('d-none');
 
-    // API 호출 (기본 정보 + 첨부파일)
     Promise.all([
         fetch(`/work/ajax/${workId}/detail`).then(r => r.json()),
         fetch(`/work/ajax/${workId}/attachments`).then(r => r.json())
@@ -31,7 +28,6 @@ function loadWorkDetail(workId, rowElem) {
         const d = detailRes.data;
         const attachments = attRes.items || [];
 
-        // 첨부파일 리스트 HTML 생성
         let fileHtml = '<span class="text-muted small">첨부파일 없음</span>';
         if (attachments.length > 0) {
             fileHtml = `<ul class="list-group list-group-flush border rounded">` +
@@ -44,7 +40,6 @@ function loadWorkDetail(workId, rowElem) {
                     </li>`).join('') + `</ul>`;
         }
 
-        // 패널 렌더링
         panel.innerHTML = `
             <div class="mb-3">
                 <label class="small fw-bold text-secondary">작업일</label>
@@ -78,7 +73,6 @@ function loadWorkDetail(workId, rowElem) {
 // [2] 작업 등록
 function openWorkCreateModal() {
     document.getElementById('workCreateForm').reset();
-    // 날짜 필드 오늘 날짜로 기본 세팅 (soms.js의 todayISO 활용)
     const dateInput = document.querySelector('#workCreateForm [name="work_date"]');
     if(dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
 
@@ -97,6 +91,9 @@ async function createWork() {
 
         if(json.ok) {
             await Swal.fire('성공', '작업이 등록되었습니다.', 'success');
+
+            // [수정됨] 작업 탭 유지
+            window.location.hash = 'tab-work';
             window.location.reload();
         } else {
             Swal.fire('오류', json.message, 'error');
@@ -118,12 +115,10 @@ function openWorkEditModal(workId) {
 
     document.getElementById('edit_work_id').value = workId;
 
-    // 로딩 상태 표시
     loading.style.display = 'block';
     content.style.display = 'none';
     modal.show();
 
-    // 데이터 로드
     Promise.all([
         fetch(`/work/ajax/${workId}/detail`).then(r=>r.json()),
         fetch(`/work/ajax/${workId}/attachments`).then(r=>r.json())
@@ -131,14 +126,12 @@ function openWorkEditModal(workId) {
         if(!detailRes.ok) throw new Error(detailRes.message);
 
         const d = detailRes.data;
-        // 폼 데이터 바인딩
         document.getElementById('edit_person_id').value = d.person_id;
         document.getElementById('edit_work_date').value = d.work_date;
         document.getElementById('edit_work_type').value = d.work_type;
         document.getElementById('edit_summary').value = d.summary || '';
         document.getElementById('edit_description').value = d.description || '';
 
-        // 첨부파일 목록 렌더링 (삭제 버튼 포함)
         const fileList = document.getElementById('edit_file_list');
         const items = attRes.items || [];
 
@@ -174,6 +167,9 @@ async function updateWork() {
 
         if(json.ok) {
             await Swal.fire('수정 완료', '작업 정보가 수정되었습니다.', 'success');
+
+            // [수정됨] 작업 탭 유지
+            window.location.hash = 'tab-work';
             window.location.reload();
         } else {
             Swal.fire('오류', json.message, 'error');
@@ -183,7 +179,7 @@ async function updateWork() {
     }
 }
 
-// [4] 첨부파일 개별 삭제 (수정 모달 내부)
+// [4] 첨부파일 개별 삭제 (수정 모달 내부) - 변경 없음 (새로고침 안함)
 async function deleteAttachment(attId, workId) {
     const result = await Swal.fire({
         title: '파일 삭제',
@@ -201,7 +197,6 @@ async function deleteAttachment(attId, workId) {
         const res = await fetch(`/work/ajax/attachments/${attId}/delete`, { method: 'POST' });
         const json = await res.json();
         if(json.ok) {
-            // 파일 목록만 갱신 (모달 유지)
             const attRes = await fetch(`/work/ajax/${workId}/attachments`).then(r=>r.json());
             const fileList = document.getElementById('edit_file_list');
             const items = attRes.items || [];
@@ -245,6 +240,9 @@ async function deleteWork(workId) {
 
             if(json.ok) {
                 await Swal.fire('삭제됨', '작업이 삭제되었습니다.', 'success');
+
+                // [수정됨] 작업 탭 유지
+                window.location.hash = 'tab-work';
                 window.location.reload();
             } else {
                 Swal.fire('오류', json.message, 'error');

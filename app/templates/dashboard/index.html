@@ -1,114 +1,243 @@
 {% extends "base.html" %}
+
 {% block title %}Dashboard · SOMS{% endblock %}
 
 {% block content %}
 <div class="py-4">
-  <div class="d-flex align-items-center justify-content-between mb-3">
-    <div>
-      <div class="h4 mb-0">Dashboard</div>
-      <div class="text-muted small">최근 7일 변경(노트/작업) 샘플</div>
-    </div>
-  </div>
-
-  <div class="row g-3">
-    <div class="col-xl-6">
-      <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white d-flex align-items-center justify-content-between">
-          <strong>작업 일정 ({{ cal_year }}-{{ "%02d"|format(cal_month) }})</strong>
-          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('schedule.index') }}">달력 보기</a>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">Dashboard</h4>
+            <div class="text-muted small">작업 및 SR 요청 현황</div>
         </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-bordered mb-0" style="table-layout: fixed;">
-              <thead class="table-light">
-                <tr class="text-center">
-                  <th class="text-danger">일</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th class="text-danger">토</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for week in cal_weeks %}
-                  <tr style="height: 90px;">
-                    {% for d in week %}
-                      <td class="{% if d.month != cal_month %}bg-light text-muted{% endif %}">
-                        <div class="small fw-semibold">{{ d.day }}</div>
-                        {% set items = sr_by_day.get(d, []) %}
-                        {% for it in items[:2] %}
-                          <div class="small mt-1 p-1 rounded" style="background:#eef2ff;">
-                            <div class="fw-semibold" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                              [{{ it.location }}] {{ it.company }}
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('work.list_work') }}" class="btn btn-primary btn-sm shadow-sm">
+                <i class="bi bi-plus-lg me-1"></i>작업 등록
+            </a>
+            <a href="{{ url_for('sr.list_sr') }}" class="btn btn-outline-primary btn-sm shadow-sm">
+                <i class="bi bi-headset me-1"></i>SR 관리
+            </a>
+            <a href="{{ url_for('schedule.index') }}" class="btn btn-outline-secondary btn-sm shadow-sm">
+                <i class="bi bi-calendar3 me-1"></i>전체 일정
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between border-bottom-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-calendar-check text-primary fs-5"></i>
+                        <h6 class="fw-bold mb-0">작업 일정 ({{ cal_year }}.{{ "%02d"|format(cal_month) }})</h6>
+                    </div>
+                    <span class="badge bg-light text-secondary rounded-pill px-3">Monthly View</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered mb-0" style="table-layout: fixed; min-width: 600px;">
+                            <thead class="bg-light">
+                                <tr class="text-center small text-muted text-uppercase">
+                                    <th class="text-danger py-2" style="width: 14.28%;">Sun</th>
+                                    <th class="py-2" style="width: 14.28%;">Mon</th>
+                                    <th class="py-2" style="width: 14.28%;">Tue</th>
+                                    <th class="py-2" style="width: 14.28%;">Wed</th>
+                                    <th class="py-2" style="width: 14.28%;">Thu</th>
+                                    <th class="py-2" style="width: 14.28%;">Fri</th>
+                                    <th class="text-primary py-2" style="width: 14.28%;">Sat</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for week in cal_weeks %}
+                                <tr style="height: 110px;">
+                                    {% for d in week %}
+                                    <td class="p-2 align-top {% if d.month != cal_month %}bg-light bg-opacity-50{% endif %}">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <span class="small fw-bold {% if d.month != cal_month %}text-muted{% else %}text-dark{% endif %}">
+                                                {{ d.day }}
+                                            </span>
+                                        </div>
+                                        {% set items = sr_by_day.get(d, []) %}
+                                        <div class="d-flex flex-column gap-1">
+                                            {% for it in items[:2] %}
+                                            <div class="px-2 py-1 rounded border-start border-3 border-primary bg-primary bg-opacity-10 shadow-sm work-card-hover"
+                                                 style="cursor: pointer;"
+                                                 onclick="openDashboardDetail({{ it.id }}, '{{ it.company }}')">
+                                                <div class="fw-bold text-dark text-truncate" style="font-size: 0.75rem;">
+                                                    {{ it.company }}
+                                                </div>
+                                                <div class="text-muted text-truncate" style="font-size: 0.7rem;">
+                                                    {{ it.location }}
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        {% if items|length > 2 %}
+                                        <div class="text-center mt-1">
+                                            <a href="{{ url_for('schedule.index') }}" class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary text-decoration-none" style="font-size: 0.7rem;">
+                                                +{{ items|length - 2 }}건
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="row g-4">
+
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3 border-bottom-0">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-headset text-warning fs-5"></i>
+                                <h6 class="fw-bold mb-0">최근 접수된 SR</h6>
                             </div>
-                          </div>
-                        {% endfor %}
-                        {% if items|length > 2 %}
-                          <div class="small text-muted mt-1">+ {{ items|length - 2 }}</div>
-                        {% endif %}
-                      </td>
-                    {% endfor %}
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if recent_sr %}
+                                <div class="list-group list-group-flush">
+                                    {% for sr in recent_sr %}
+                                    <div class="list-group-item border-0 py-3 px-4 d-flex gap-3 align-items-start hover-bg-light"
+                                         style="cursor: pointer;"
+                                         onclick="openDashboardSrDetail({{ sr.sr_id }})">
+                                        <div class="mt-1">
+                                            {% if sr.severity == 'High' %}
+                                                <span class="badge bg-danger bg-opacity-10 text-danger rounded-circle p-2"><i class="bi bi-exclamation-lg"></i></span>
+                                            {% elif sr.severity == 'Middle' %}
+                                                <span class="badge bg-warning bg-opacity-10 text-warning rounded-circle p-2"><i class="bi bi-exclamation"></i></span>
+                                            {% else %}
+                                                <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-circle p-2"><i class="bi bi-info-lg"></i></span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="fw-bold text-dark text-truncate" style="max-width: 120px;">{{ sr.company }}</span>
+                                                {% if sr.result == '완료' %}
+                                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 0.7rem;">완료</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style="font-size: 0.7rem;">미완료</span>
+                                                {% endif %}
+                                            </div>
+
+                                            <h6 class="mb-1 small text-secondary text-clamp-2" style="line-height: 1.4;">{{ sr.content }}</h6>
+
+                                            <div class="small text-muted d-flex align-items-center gap-2 mt-1">
+                                                <i class="bi bi-geo-alt"></i> {{ sr.location }}
+                                                <span class="text-secondary">|</span>
+                                                <span>{{ sr.request_date }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5 text-muted">최근 접수된 SR이 없습니다.</div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer bg-white border-top-0 text-center py-2">
+                            <a href="{{ url_for('sr.list_sr') }}" class="text-decoration-none small fw-bold">SR 더보기 <i class="bi bi-arrow-right"></i></a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3 border-bottom-0">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-clock-history text-danger fs-5"></i>
+                                <h6 class="fw-bold mb-0">계약 만료 임박</h6>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            {% if expiring_contracts %}
+                                <div class="list-group list-group-flush">
+                                    {% for p in expiring_contracts %}
+                                    <div class="list-group-item border-0 py-3 px-4 d-flex gap-3 align-items-center hover-bg-light">
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger bg-opacity-10 text-danger rounded-circle p-2">
+                                                <i class="bi bi-calendar-x"></i>
+                                            </span>
+                                        </div>
+                                        <div class="flex-grow-1 min-w-0">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span class="fw-bold text-dark">{{ p.Company }}</span>
+                                                <small class="text-danger fw-bold">{{ p.Terminate_Date }} 만료</small>
+                                            </div>
+                                            <div class="small text-muted d-flex align-items-center gap-2">
+                                                <i class="bi bi-geo-alt"></i> {{ p.Last_Name }}
+                                            </div>
+                                        </div>
+                                        <a href="{{ url_for('customers.detail', person_id=p.Person_ID) }}" class="btn btn-sm btn-light rounded-circle shadow-sm">
+                                            <i class="bi bi-chevron-right text-muted"></i>
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5 text-muted">임박한 계약 만료 건이 없습니다.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-
-    <div class="col-xl-6">
-      <div class="row g-3">
-        <div class="col-12">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-              <strong>Recent Notes</strong>
-            </div>
-            <div class="card-body">
-              {% if recent_notes %}
-                <ul class="list-group list-group-flush">
-                  {% for n in recent_notes %}
-                    <li class="list-group-item d-flex justify-content-between align-items-start">
-                      <div>
-                        <div class="small text-muted">{{ n.Person_ID }}</div>
-                        <div class="fw-semibold">{{ n.Severity }} · {{ n.Tags }}</div>
-                        <div class="text-muted">{{ n.Content[:120] }}{% if n.Content|length > 120 %}...{% endif %}</div>
-                      </div>
-                      <div class="text-muted small">{{ n.Created_At }}</div>
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <div class="text-muted">No recent notes.</div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-
-        <div class="col-12">
-          <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white">
-              <strong>Recent Work</strong>
-            </div>
-            <div class="card-body">
-              {% if recent_work %}
-                <ul class="list-group list-group-flush">
-                  {% for w in recent_work %}
-                    <li class="list-group-item d-flex justify-content-between align-items-start">
-                      <div>
-                        <div class="small text-muted">{{ w.Person_ID }}</div>
-                        <div class="fw-semibold">{{ w.Work_Type }} · {{ w.Work_Summary }}</div>
-                        <div class="text-muted">{{ w.Submitter }}</div>
-                      </div>
-                      <div class="text-muted small">{{ w.Create_Date }}</div>
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <div class="text-muted">No recent work.</div>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
 </div>
+
+<div class="modal fade" id="dashboardDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold"><i class="bi bi-journal-text me-2 text-primary"></i>작업 상세 정보</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="dashboardDetailBody">
+                <div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="dashboardSrDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold"><i class="bi bi-headset me-2 text-warning"></i>SR 상세 정보</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4" id="dashboardSrDetailBody">
+                <div class="text-center py-5"><div class="spinner-border text-warning" role="status"></div></div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 2줄 말줄임 처리 클래스 */
+    .text-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .work-card-hover { transition: all 0.2s ease; }
+    .work-card-hover:hover { transform: translateY(-2px); background-color: rgba(13, 110, 253, 0.15) !important; }
+    .hover-bg-light:hover { background-color: #f8f9fa; }
+</style>
+
 {% endblock %}

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 from .extensions import db, migrate, login_manager
 from .routes import auth, dashboard, customers, uploads
-from .routes import sr, schedule, work
+from .routes import sr, schedule, work, asset
 from .bootstrap import ensure_bootstrap_admin
 
 
@@ -35,6 +35,7 @@ def create_app():
     app.register_blueprint(sr.bp)
     app.register_blueprint(work.bp)
     app.register_blueprint(schedule.bp)
+    app.register_blueprint(asset.bp)
 
     with app.app_context():
         ensure_bootstrap_admin()

@@ -10,13 +10,12 @@ import json
 
 from ..extensions import db
 from ..models.ctm_people import CTMPeople
-from ..models.customer_notes import CustomerNote
 from ..models.work_info import WorkInfo
-from ..models.ast_computersystem import AST_Computer_System
 from ..models.servers import ServerInfo
 from ..models.contacts import Contact
 from ..models.contracts import Contract
 from ..models.work_attachments import WorkAttachment
+from ..models.ast_computersystem import AST_Computer_System
 
 bp = Blueprint("customers", __name__, url_prefix="/customers")
 
@@ -148,14 +147,7 @@ def detail(person_id: str):
         flash("고객을 찾을 수 없습니다.", "warning")
         return redirect(url_for("customers.list_customers"))
 
-    notes = (
-        db.session.query(CustomerNote)
-        .filter(CustomerNote.Person_ID == person_id)
-        .filter(CustomerNote.Deleted_YN == "N")
-        .order_by(CustomerNote.Created_At.desc())
-        .limit(50)
-        .all()
-    )
+
 
     work_rows = (
         db.session.query(WorkInfo)
@@ -201,7 +193,7 @@ def detail(person_id: str):
     return render_template(
         "customers/detail.html",
         people=people,
-        notes=notes,
+
         severities=SEVERITIES,
         tags=DEFAULT_TAGS,
         work_rows=work_rows,

@@ -6,7 +6,6 @@ from werkzeug.utils import secure_filename
 from datetime import datetime
 
 from ..extensions import db
-from ..models.customer_notes import CustomerNote
 from ..models.note_attachments import NoteAttachment
 
 bp = Blueprint("uploads", __name__, url_prefix="/uploads")

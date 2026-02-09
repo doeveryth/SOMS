@@ -1,0 +1,622 @@
+{% extends "base.html" %}
+
+{% block title %}보안장비 관리 · SOMS{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">보안장비 관리</h4>
+            <div class="text-muted small">전체 고객사의 보안 자산 현황 (총 {{ pagination.total }}건)</div>
+        </div>
+        <button class="btn btn-primary btn-sm shadow-sm" onclick="openAssetRegisterModal()">
+            <i class="bi bi-plus-lg me-1"></i>장비 등록
+        </button>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body bg-light rounded-3 p-3">
+            <form class="row g-2 align-items-end" method="get">
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-secondary mb-1">고객사</label>
+                    <input type="text" class="form-control form-control-sm" name="company" value="{{ filters.company }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-secondary mb-1">장비 유형</label>
+                    <select class="form-select form-select-sm" name="type">
+                        <option value="">전체</option>
+                        <option value="방화벽" {% if filters.type=='방화벽' %}selected{% endif %}>방화벽</option>
+                        <option value="웹방화벽" {% if filters.type=='웹방화벽' %}selected{% endif %}>웹방화벽</option>
+                        <option value="IPS" {% if filters.type=='IPS' %}selected{% endif %}>IPS</option>
+                        <option value="DDoS" {% if filters.type=='DDoS' %}selected{% endif %}>DDoS</option>
+                        <option value="VPN" {% if filters.type=='VPN' %}selected{% endif %}>VPN</option>
+                        <option value="스위치" {% if filters.type=='스위치' %}selected{% endif %}>스위치</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold text-secondary mb-1">검색어</label>
+                    <input type="text" class="form-control form-control-sm" name="q" value="{{ filters.q }}" placeholder="자산명, IP, 시리얼">
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button class="btn btn-sm btn-secondary fw-bold" type="submit">
+                        <i class="bi bi-search me-1"></i>조회
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="width: 100%; table-layout: fixed;">
+                    <colgroup>
+                        <col style="width: 12%;"> <col style="width: 12%;"> <col style="width: 20%;"> <col style="width: 8%;">  <col style="width: 12%;"> <col style="width: 14%;"> <col style="width: 8%;">  <col style="width: 8%;">  <col style="width: 90px;"> </colgroup>
+                    <thead class="table-light">
+                        <tr class="text-secondary small text-uppercase">
+                            <th class="ps-4 py-3 fw-bold">고객사</th>
+                            <th class="py-3 fw-bold">사이트명</th>
+                            <th class="py-3 fw-bold">장비 이름 (CI 이름)</th>
+                            <th class="py-3 fw-bold text-center">제품 계층 2</th>
+                            <th class="py-3 fw-bold text-center">제품 이름</th>
+                            <th class="py-3 fw-bold text-center">IP</th>
+                            <th class="py-3 fw-bold text-center">운영모드</th>
+                            <th class="py-3 fw-bold text-center">공급자(소유)</th>
+                            <th class="py-3 fw-bold text-center">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody style="font-size: 0.85rem;">
+                        {% for asset, person in pagination.items %}
+                        <tr class="clickable-row" onclick="openAssetDetailModal(this)"
+                            data-id="{{ asset.Asset_ID }}"
+                            data-person-id="{{ asset.Person_ID }}"
+                            data-company="{{ person.Company }}"
+                            data-site="{{ person.Last_Name }}"
+
+                            data-ci-name="{{ asset.Name }}"
+                            data-supplier="{{ asset.Supplier }}"
+                            data-category="{{ asset.Category }}"
+                            data-type="{{ asset.Type }}"
+                            data-item="{{ asset.Item }}"
+                            data-product-name="{{ asset.Product_Name }}"
+                            data-model-number="{{ asset.Model_Number }}"
+                            data-manufacturer-name="{{ asset.Manufacturer_Name }}"
+                            data-serial-number="{{ asset.Serial_Number }}"
+                            data-ip-info="{{ asset.IP_Address }}"
+                            data-ci-note="{{ asset.Short_Description }}"
+                            data-maintenance-company="{{ asset.Maintenance_Company }}"
+                            data-operation-company="{{ asset.Operation_Company }}"
+                            data-operation-mode="{{ asset.Operation_Mode }}"
+                            data-idc-site="{{ asset.IDC_Site }}"
+                            data-c-backup="{{ asset.C_backup }}"
+                            data-c-cycle="{{ asset.C_cycle }}"
+                            data-cfg-note="{{ asset.C_note }}"
+                            data-lifecycle-status="{{ asset.AssetLifecycleStatus }}"
+                            data-installation-date="{{ asset.InstallationDate }}"
+                            data-license-expiry="{{ asset.License_Expiry_Date }}"
+                            data-disposal-date="{{ asset.Disposal_Date }}"
+                            data-description="{{ asset.Description }}"
+                            data-purchase-date="{{ asset.PurchaseDate }}"
+                            data-os-version="{{ asset.Version_Number }}">
+
+                            <td class="ps-4">
+                                <div class="text-truncate fw-bold text-dark" title="{{ person.Company }}">
+                                    {{ person.Company }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-truncate" title="{{ person.Last_Name }}">
+                                    {{ person.Last_Name or '-' }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-primary text-truncate" title="{{ asset.Name }}">
+                                    {{ asset.Name }}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border">{{ asset.Type }}</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="text-truncate small" title="{{ asset.Product_Name }}">
+                                    {{ asset.Product_Name or '-' }}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="font-monospace small text-truncate" title="{{ asset.IP_Address }}">
+                                    {{ asset.IP_Address or '-' }}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border">
+                                    {% if asset.Operation_Mode|string == '1' %} 탐지
+                                    {% elif asset.Operation_Mode|string == '2' %} 차단
+                                    {% else %} - {% endif %}
+                                </span>
+                            </td>
+                            <td class="text-center small text-truncate">{{ asset.Supplier or '-' }}</td>
+                            <td class="text-center pe-3" onclick="event.stopPropagation()">
+                                <div class="d-flex justify-content-center gap-1">
+                                    <button class="btn btn-outline-secondary btn-square shadow-sm"
+                                            onclick="openAssetEditModalFromRow(this.closest('tr'))"
+                                            title="수정">
+                                        <i class="bi bi-pencil-fill" style="font-size: 0.8rem;"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-square shadow-sm"
+                                            onclick="deleteAsset({{ asset.Asset_ID }})"
+                                            title="삭제">
+                                        <i class="bi bi-trash-fill" style="font-size: 0.8rem;"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-shield-x fs-1 d-block mb-2 opacity-50"></i>
+                                등록된 보안장비가 없습니다.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if pagination.pages > 1 %}
+    <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link border-0 rounded-circle mx-1" href="{{ url_for('asset.list_security', page=pagination.prev_num, **filters) if pagination.has_prev else '#' }}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                    {% if p == pagination.page %}
+                    <li class="page-item active">
+                        <span class="page-link border-0 rounded-circle mx-1">{{ p }}</span>
+                    </li>
+                    {% else %}
+                    <li class="page-item">
+                        <a class="page-link border-0 rounded-circle mx-1 text-secondary" href="{{ url_for('asset.list_security', page=p, **filters) }}">{{ p }}</a>
+                    </li>
+                    {% endif %}
+                {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link border-0 mx-1">...</span>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link border-0 rounded-circle mx-1" href="{{ url_for('asset.list_security', page=pagination.next_num, **filters) if pagination.has_next else '#' }}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<div class="modal fade" id="assetDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-file-text me-2 text-primary"></i>장비 상세 정보
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-6 border-end">
+                        <h6 class="fw-bold text-secondary mb-3 small"><i class="bi bi-upc-scan me-1"></i>식별 정보</h6>
+                        <dl class="row mb-0 small">
+                            <dt class="col-4 text-muted">CI 이름</dt>
+                            <dd class="col-8 fw-bold text-dark" id="view_ci_name">-</dd>
+                            <dt class="col-4 text-muted">고객사</dt>
+                            <dd class="col-8 text-dark" id="view_company">-</dd>
+                            <dt class="col-4 text-muted">사이트명</dt>
+                            <dd class="col-8 text-dark" id="view_site">-</dd>
+                            <dt class="col-4 text-muted">일련번호</dt>
+                            <dd class="col-8 text-dark" id="view_serial">-</dd>
+                            <dt class="col-4 text-muted">IP 주소</dt>
+                            <dd class="col-8 font-monospace text-primary" id="view_ip">-</dd>
+                            <dt class="col-4 text-muted">OS 버전</dt>
+                            <dd class="col-8" id="view_os">-</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-secondary mb-3 small"><i class="bi bi-router me-1"></i>분류 및 스펙</h6>
+                        <dl class="row mb-0 small">
+                            <dt class="col-4 text-muted">공급자</dt>
+                            <dd class="col-8" id="view_supplier">-</dd>
+                            <dt class="col-4 text-muted">계층 정보</dt>
+                            <dd class="col-8 text-dark"><span id="view_type" class="badge bg-light text-dark border"></span></dd>
+                            <dt class="col-4 text-muted">제품/모델</dt>
+                            <dd class="col-8" id="view_product_model">-</dd>
+                            <dt class="col-4 text-muted">제조사</dt>
+                            <dd class="col-8" id="view_manufacturer">-</dd>
+                        </dl>
+                    </div>
+                    <div class="col-12"><hr class="dashed my-1"></div>
+                    <div class="col-md-6 border-end">
+                        <h6 class="fw-bold text-secondary mb-3 small"><i class="bi bi-tools me-1"></i>운영 정보</h6>
+                        <dl class="row mb-0 small">
+                            <dt class="col-4 text-muted">유지보수</dt>
+                            <dd class="col-8" id="view_maint_comp">-</dd>
+                            <dt class="col-4 text-muted">운영업체</dt>
+                            <dd class="col-8" id="view_op_comp">-</dd>
+                            <dt class="col-4 text-muted">운영모드</dt>
+                            <dd class="col-8 fw-bold text-dark" id="view_op_mode">-</dd>
+                            <dt class="col-4 text-muted">DC 위치</dt>
+                            <dd class="col-8" id="view_idc">-</dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-secondary mb-3 small"><i class="bi bi-archive me-1"></i>백업 설정</h6>
+                        <dl class="row mb-0 small">
+                            <dt class="col-4 text-muted">백업여부</dt>
+                            <dd class="col-8" id="view_backup">-</dd>
+                            <dt class="col-4 text-muted">주기</dt>
+                            <dd class="col-8" id="view_cycle">-</dd>
+                            <dt class="col-4 text-muted">특이사항</dt>
+                            <dd class="col-8 text-truncate" id="view_cfg_note">-</dd>
+                        </dl>
+                    </div>
+                    <div class="col-12"><hr class="dashed my-1"></div>
+                    <div class="col-12">
+                        <h6 class="fw-bold text-secondary mb-3 small"><i class="bi bi-calendar-event me-1"></i>일정 및 비고</h6>
+                        <div class="bg-light p-3 rounded small">
+                            <div class="row mb-2">
+                                <div class="col-3 text-muted">설치일</div>
+                                <div class="col-3 fw-bold" id="view_install_date">-</div>
+                                <div class="col-3 text-muted">만료일</div>
+                                <div class="col-3 fw-bold text-danger" id="view_expiry_date">-</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-3 text-muted">비고</div>
+                                <div class="col-9" id="view_desc">-</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-primary" id="btnEditFromDetail">
+                    <i class="bi bi-pencil me-1"></i>수정하기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="assetModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <form class="modal-content" id="assetForm">
+            <input type="hidden" id="asset_id" name="asset_id">
+
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="assetModalTitle">보안장비 추가</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
+            </div>
+
+            <div class="modal-body bg-light p-4">
+                <div class="alert alert-info small mb-4 border-0 shadow-sm">
+                    <i class="bi bi-info-circle-fill me-1"></i>
+                    필수 항목(<span class="text-danger fw-bold">*</span>)만 입력하면 등록됩니다.
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-body">
+                        <h6 class="fw-bold mb-3 text-secondary"><i class="bi bi-building me-1"></i>기본 정보</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">사이트명 <span class="text-danger">*</span></label>
+                                <select class="form-select select2-site" name="person_id" id="person_id" required>
+                                    <option value="">선택하세요</option>
+                                    {% for c in customers %}
+                                    <option value="{{ c.Person_ID }}" data-company="{{ c.Company }}">
+                                        {{ c.Last_Name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">고객사 (자동입력)</label>
+                                <input type="text" class="form-control bg-white" id="display_company" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion" id="assetInfoAccordion">
+
+                    <div class="accordion-item border shadow-sm mb-2 rounded overflow-hidden">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button fw-bold text-dark small" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSpec">
+                                <i class="bi bi-router me-2"></i>장비 정보 및 스펙
+                            </button>
+                        </h2>
+                        <div id="collapseSpec" class="accordion-collapse collapse show" data-bs-parent="#assetInfoAccordion">
+                            <div class="accordion-body bg-light border-top">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">CI 이름 (장비 식별명) <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="ci_name" id="ci_name" placeholder="예: FW_MAIN_01" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">공급자명 <span class="text-danger">*</span></label>
+                                        <select class="form-select" name="supplier" id="supplier" required>
+                                            <option value="">선택하세요</option>
+                                            <option value="ICTIS">ICTIS</option>
+                                            <option value="고객소유">고객소유</option>
+                                            <option value="기타">기타</option>
+                                            <option value="임대">임대</option>
+                                            <option value="펜타시큐리티">펜타시큐리티</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">계층 1 <span class="text-danger">*</span></label>
+                                        <select class="form-select" name="category" id="category">
+                                            <option value="보안장비">보안장비</option>
+                                            <option value="보안장비_VIP">보안장비_VIP</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">계층 2 (검색 가능) <span class="text-danger">*</span></label>
+                                        <select class="form-select select2-site" name="type" id="type" required>
+                                            <option value="">선택</option>
+                                            <option value="방화벽">방화벽</option>
+                                            <option value="방화벽_VIP">방화벽_VIP</option>
+                                            <option value="NGFW">NGFW</option>
+                                            <option value="웹방화벽">웹방화벽</option>
+                                            <option value="스위치">스위치</option>
+                                            <option value="UTM">UTM</option>
+                                            <option value="UTM_VIP">UTM_VIP</option>
+                                            <option value="IPS">IPS</option>
+                                            <option value="IDS">IDS</option>
+                                            <option value="DDoS">DDoS</option>
+                                            <option value="VPN">VPN</option>
+                                            <option value="라우터">라우터</option>
+                                            <option value="스팸스나이퍼">스팸스나이퍼</option>
+                                            <option value="스팸스나이퍼_VIP">스팸스나이퍼_VIP</option>
+                                            <option value="웹키퍼">웹키퍼</option>
+                                            <option value="로그서버">로그서버</option>
+                                            <option value="암호화솔루션">암호화솔루션</option>
+                                            <option value="기타">기타</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">계층 3 (검색 가능)</label>
+                                        <select class="form-select select2-site" name="item" id="item">
+                                            <option value="">선택</option>
+                                            <option value="Ahnlab">Ahnlab</option>
+                                            <option value="AIWAF">AIWAF</option>
+                                            <option value="AxGate">AxGate</option>
+                                            <option value="Catalyst">Catalyst</option>
+                                            <option value="Cisco">Cisco</option>
+                                            <option value="EX">EX</option>
+                                            <option value="F5">F5</option>
+                                            <option value="FortiDDoS">FortiDDoS</option>
+                                            <option value="Fortinet">Fortinet</option>
+                                            <option value="FTG">FTG</option>
+                                            <option value="FutureSystems">FutureSystems</option>
+                                            <option value="HansolNexG">HansolNexG</option>
+                                            <option value="HP">HP</option>
+                                            <option value="ICTIS">ICTIS</option>
+                                            <option value="ISG">ISG</option>
+                                            <option value="iwall">iwall</option>
+                                            <option value="Juniper">Juniper</option>
+                                            <option value="L4">L4</option>
+                                            <option value="L4 Alteon 180E">L4 Alteon 180E</option>
+                                            <option value="L4 PumPkin">L4 PumPkin</option>
+                                            <option value="MF2">MF2</option>
+                                            <option value="MFI">MFI</option>
+                                            <option value="Monitorapp">Monitorapp</option>
+                                            <option value="NE">NE</option>
+                                            <option value="Paloalto">Paloalto</option>
+                                            <option value="Penta">Penta</option>
+                                            <option value="Piolink">Piolink</option>
+                                            <option value="PulseSecure">PulseSecure</option>
+                                            <option value="RUCKUS">RUCKUS</option>
+                                            <option value="Secui">Secui</option>
+                                            <option value="SG2024">SG2024</option>
+                                            <option value="Sniper">Sniper</option>
+                                            <option value="SRX">SRX</option>
+                                            <option value="SSG">SSG</option>
+                                            <option value="TG">TG</option>
+                                            <option value="TrendMicro">TrendMicro</option>
+                                            <option value="UTM_VIP">UTM_VIP</option>
+                                            <option value="VIP">VIP</option>
+                                            <option value="Wapples">Wapples</option>
+                                            <option value="Web Front">Web Front</option>
+                                            <option value="Wins">Wins</option>
+                                            <option value="XIOS">XIOS</option>
+                                            <option value="로그서버">로그서버</option>
+                                            <option value="방화벽_VIP">방화벽_VIP</option>
+                                            <option value="스팸스나이퍼">스팸스나이퍼</option>
+                                            <option value="스팸스나이퍼_VIP">스팸스나이퍼_VIP</option>
+                                            <option value="웹키퍼">웹키퍼</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">제품명</label>
+                                        <input type="text" class="form-control" name="product_name" id="product_name">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">버전/모델</label>
+                                        <input type="text" class="form-control" name="model_number" id="model_number">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">제조사</label>
+                                        <input type="text" class="form-control" name="manufacturer_name" id="manufacturer_name">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item border shadow-sm mb-2 rounded overflow-hidden">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed fw-bold text-dark small" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOp">
+                                <i class="bi bi-tools me-2"></i>운영 및 백업
+                            </button>
+                        </h2>
+                        <div id="collapseOp" class="accordion-collapse collapse" data-bs-parent="#assetInfoAccordion">
+                            <div class="accordion-body bg-light border-top">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">유지보수업체 (검색 가능)</label>
+                                        <select class="form-select select2-site" name="maintenance_company" id="maintenance_company">
+                                            <option value="12">없음</option>
+                                            <option value="0">ICTIS</option>
+                                            <option value="11">고객사 유지보수</option>
+                                            <option value="1">에스에이정보기술</option>
+                                            <option value="2">블루시큐어</option>
+                                            <option value="3">유콘텍</option>
+                                            <option value="4">유니포인트</option>
+                                            <option value="5">엔큐리티</option>
+                                            <option value="6">시큐트러스트</option>
+                                            <option value="7">모니터랩</option>
+                                            <option value="8">인스테크</option>
+                                            <option value="9">쿼리시스템즈</option>
+                                            <option value="10">에스디씨디엠</option>
+                                            <option value="13">윈스</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">운영업체</label>
+                                        <select class="form-select" name="operation_company" id="operation_company">
+                                            <option value="0">ICTIS</option>
+                                            <option value="1">고객사</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">운영모드</label>
+                                        <select class="form-select" name="operation_mode" id="operation_mode">
+                                            <option value="0">해당 없음</option>
+                                            <option value="1">탐지</option>
+                                            <option value="2">차단</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">DC (데이터센터)</label>
+                                        <input type="text" class="form-control" name="idc_site" id="idc_site">
+                                    </div>
+                                </div>
+                                <hr class="dashed my-2">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">컨피그 백업</label>
+                                        <select class="form-select" name="c_backup" id="c_backup">
+                                            <option value="0">YES</option>
+                                            <option value="1">NO</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">백업 주기</label>
+                                        <select class="form-select" name="c_cycle" id="c_cycle">
+                                            <option value="0">Daily</option>
+                                            <option value="1">Weekly</option>
+                                            <option value="2">Monthly</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small fw-bold text-secondary">백업 특이사항</label>
+                                        <input type="text" class="form-control" name="cfg_note" id="cfg_note">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item border shadow-sm rounded overflow-hidden">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed fw-bold text-dark small" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStatus">
+                                <i class="bi bi-calendar-check me-2"></i>식별 정보 및 날짜
+                            </button>
+                        </h2>
+                        <div id="collapseStatus" class="accordion-collapse collapse" data-bs-parent="#assetInfoAccordion">
+                            <div class="accordion-body bg-light border-top">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">일련 번호 (S/N)</label>
+                                        <input type="text" class="form-control" name="serial_number" id="serial_number">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">IP 주소</label>
+                                        <input type="text" class="form-control font-monospace" name="ip_address" id="ip_address">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">OS 버전</label>
+                                        <input type="text" class="form-control" name="os_version" id="os_version">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">리전(Region)</label>
+                                        <input type="text" class="form-control" name="region" id="region">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label small fw-bold text-secondary">장비 특이사항</label>
+                                        <textarea class="form-control" name="ci_note" id="ci_note" rows="1"></textarea>
+                                    </div>
+                                </div>
+                                <hr class="dashed my-2">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">상태</label>
+                                        <select class="form-select" name="lifecycle_status" id="lifecycle_status">
+                                            <option value="3">사용중</option>
+                                            <option value="0">주문됨</option>
+                                            <option value="1">입고됨</option>
+                                            <option value="11">해지/폐기</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">도입일</label>
+                                        <input type="date" class="form-control" name="purchase_date" id="purchase_date">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">설치일</label>
+                                        <input type="date" class="form-control" name="installation_date" id="installation_date">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">라이선스 만료일</label>
+                                        <input type="date" class="form-control" name="license_expiry" id="license_expiry">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">폐기일</label>
+                                        <input type="date" class="form-control" name="disposal_date" id="disposal_date">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="mt-3">
+                    <label class="form-label small fw-bold text-secondary">비고 (Description)</label>
+                    <textarea class="form-control" name="description" id="description" rows="2"></textarea>
+                </div>
+
+            </div>
+            <div class="modal-footer bg-white py-3 border-top-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary px-4 fw-bold" onclick="saveAsset()">
+                    <i class="bi bi-check-lg me-1"></i> 저장하기
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

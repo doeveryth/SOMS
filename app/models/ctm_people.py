@@ -52,7 +52,6 @@ class CTMPeople(db.Model):
 
     Other_Info: Mapped[str | None] = mapped_column("Other_Info", Text, quote=True)
 
-    notes = relationship("CustomerNote", back_populates="people", lazy="dynamic")
     work_items = relationship("WorkInfo", back_populates="people", lazy="dynamic")
 
     Contract_Amount = db.Column(db.String(100), nullable=True)  # 계약 금액

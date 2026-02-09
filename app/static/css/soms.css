@@ -1,17 +1,16 @@
 :root {
-    --surface: #ffffff;
-    --muted-surface: #f6f7fb;
+    /* [수정] 전체 테마 색상 재정의 */
+    --sidebar-bg: #1e293b;       /* 더 세련된 슬레이트 블루 다크 */
+    --sidebar-text: #94a3b8;     /* 기본 텍스트 (회색빛) */
+    --sidebar-text-hover: #ffffff;
+    --sidebar-active-bg: #334155; /* 활성 메뉴 배경 */
+    --sidebar-active-accent: #60a5fa; /* 활성 메뉴 포인트 컬러 (밝은 블루) */
 
-    --sidebar: #0f172a;
-    --text: #0f172a;
-    --muted: #64748b;
-    --border: #e5e7eb;
+    --sidebar-w: 260px;
 
     --primary: #2563eb;
-    --primary-2: #1d4ed8;
-    --ring: rgba(37, 99, 235, 0.25);
-
-    --sidebar-w: 264px;
+    --border: #e2e8f0;
+    --muted-surface: #f8fafc; /* 배경색을 아주 연한 블루그레이로 변경 */
 }
 
 html, body {
@@ -38,35 +37,84 @@ body.soms-bg {
     "Noto Sans KR", "Apple SD Gothic Neo", Arial;
 }
 
-/* Sidebar: 고정폭 + shrink 방지 (사이드바 줄어드는 문제 해결) */
+/* 사이드바 레이아웃 */
 .soms-sidebar {
     width: var(--sidebar-w);
     min-width: var(--sidebar-w);
-    flex: 0 0 var(--sidebar-w);
-    flex-shrink: 0;
-    min-height: 100vh;
-    background: linear-gradient(180deg, var(--sidebar) 0%, #0b1220 100%);
-    color: #e5e7eb;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 1000;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
 }
 
+.soms-brand {
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column; /* 전체적으로는 세로 배치 (윗줄 -> 아랫줄) */
+    gap: 4px; /* 윗줄과 아랫줄 사이 간격 */
+}
+
+/* 윗줄 (로고 + SOMS) 스타일 */
+.soms-brand .brand-row {
+    display: flex;
+    align-items: flex-end; /* 텍스트 베이스라인에 맞춰 정렬 (취향에 따라 center로 변경 가능) */
+    gap: 8px; /* 로고와 SOMS 사이 간격 */
+}
+/* kt cloud 로고 이미지 */
+.soms-brand .brand-img {
+    height: 18px; /* 로고 높이 (텍스트 크기에 맞춰 조절) */
+    width: auto;  /* 비율 유지 */
+    display: block;
+    margin-bottom: 2px; /* 텍스트와 높이 미세 조정 */
+}
+
+/* SOMS 텍스트 */
+.soms-brand .brand-title {
+    font-size: 20px;
+    font-weight: 800; /* 굵게 */
+    color: #ffffff;
+    line-height: 1;
+    letter-spacing: -0.5px;
+}
+
+/* 아랫줄 (긴 설명) 스타일 */
+.soms-brand .brand-subtitle {
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8; /* 회색 톤 */
+    letter-spacing: -0.2px;
+    margin-top: 2px;
+    white-space: nowrap; /* 줄바꿈 방지 */
+}
+
+.soms-brand .brand-logo {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
 .soms-main {
     min-width: 0; /* flex overflow 안정화 */
 }
 
-.soms-brand {
-    padding: 18px 18px 12px 18px;
+/* 브랜드 텍스트 영역 */
+.soms-brand .brand-text {
+    display: flex;
+    flex-direction: column;
 }
 
-.soms-brand .title {
-    font-weight: 900;
-    letter-spacing: 0.2px;
-}
-
-.soms-brand .subtitle {
-    color: rgba(229, 231, 235, 0.70);
-    font-size: 12px;
-    margin-top: 2px;
-}
 
 /* Topbar */
 .soms-topbar {
@@ -89,37 +137,131 @@ body.soms-bg {
     margin: 0 auto;
 }
 
-/* Nav */
-.soms-nav-section {
-    padding: 12px 10px 6px 10px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: rgba(229, 231, 235, 0.55);
+/* 네비게이션 스크롤 영역 */
+.soms-nav-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 16px 20px 16px;
 }
 
+.soms-nav-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+.soms-nav-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* 섹션 헤더 */
+.soms-nav-section {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #475569;
+    margin: 24px 12px 8px 12px;
+}
+.soms-nav-section:first-child {
+    margin-top: 0;
+}
+
+/* 네비게이션 링크 */
 .soms-navlink {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     padding: 10px 12px;
-    border-radius: 12px;
-    color: rgba(229, 231, 235, 0.90);
+    border-radius: 8px;
+    color: var(--sidebar-text);
     text-decoration: none;
-    margin: 4px 10px;
-    transition: background 120ms ease, color 120ms ease, transform 120ms ease;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-bottom: 2px;
 }
 
+.soms-navlink i {
+    font-size: 16px;
+    opacity: 0.7;
+    transition: all 0.2s;
+}
+
+/* Hover 상태 */
 .soms-navlink:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-    transform: translateY(-1px);
+    color: var(--sidebar-text-hover);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.soms-navlink:hover i {
+    opacity: 1;
 }
 
+/* Active 상태 */
 .soms-navlink.is-active {
-    background: rgba(37, 99, 235, 0.18);
+    background-color: var(--primary);
     color: #ffffff;
-    border: 1px solid rgba(37, 99, 235, 0.35);
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+.soms-navlink.is-active i {
+    opacity: 1;
+}
+
+/* 하단 사용자 프로필 영역 */
+.soms-nav-spacer {
+    flex: 1;
+}
+
+.soms-user-profile {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.logout-link {
+    color: #ef4444 !important; /* 레드 컬러 */
+    opacity: 0.8;
+}
+.logout-link:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    opacity: 1;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    margin-top: 10px;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    background-color: #334155;
+    color: #94a3b8;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-details .user-id {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f1f5f9;
+}
+
+.user-details .user-role {
+    font-size: 11px;
+    color: #64748b;
 }
 
 .soms-nav-badge {

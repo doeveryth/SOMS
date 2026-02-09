@@ -27,5 +27,3 @@ class NoteAttachment(db.Model):
 
     Deleted_YN: Mapped[str] = mapped_column("Deleted_YN", Text, nullable=False, default="N", quote=True)
     Deleted_At: Mapped[datetime | None] = mapped_column("Deleted_At", DateTime, quote=True)
-
-    note = relationship("CustomerNote", back_populates="attachments")
