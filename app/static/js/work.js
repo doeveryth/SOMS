@@ -5,7 +5,40 @@
 
 let currentDetailId = null;
 
-// [1] 상세 정보 로드 (우측 패널) - 변경 없음
+// ==============================================================
+// [0] 초기화 및 이벤트 리스너 (Select2 설정)
+// ==============================================================
+$(document).ready(function() {
+    // 1. 등록 모달 내 Select2 활성화 (bootstrap-5 테마)
+    $('.select2-site').select2({
+        theme: 'bootstrap-5',
+        dropdownParent: $('#workCreateModal'), // 모달 내 포커스 문제 해결
+        placeholder: "사이트를 검색하세요",
+        allowClear: true,
+        width: '100%'
+    });
+
+    // 2. [등록] 사이트 선택 시 고객사명 자동 입력 이벤트
+    $('#create_person_id').on('select2:select change', function(e) {
+        // 선택된 옵션의 data-company 속성 값을 가져옴
+        var selectedOption = $(this).find(':selected');
+        var companyName = selectedOption.data('company');
+
+        // 고객사 Readonly Input에 값 설정
+        $('#create_company_view').val(companyName || '');
+    });
+
+    // 3. 모달이 닫힐 때 초기화 (선택사항)
+    $('#workCreateModal').on('hidden.bs.modal', function () {
+        $('#create_person_id').val(null).trigger('change');
+        $('#create_company_view').val('');
+    });
+});
+
+
+// ==============================================================
+// [1] 상세 정보 로드 (우측 패널)
+// ==============================================================
 function loadWorkDetail(workId, rowElem) {
     currentDetailId = workId;
 
@@ -70,9 +103,16 @@ function loadWorkDetail(workId, rowElem) {
     });
 }
 
+// ==============================================================
 // [2] 작업 등록
+// ==============================================================
 function openWorkCreateModal() {
     document.getElementById('workCreateForm').reset();
+
+    // [수정] Select2 값 초기화 (jQuery 사용 필수)
+    $('#create_person_id').val(null).trigger('change');
+    $('#create_company_view').val('');
+
     const dateInput = document.querySelector('#workCreateForm [name="work_date"]');
     if(dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
 
@@ -91,10 +131,7 @@ async function createWork() {
 
         if(json.ok) {
             await Swal.fire('성공', '작업이 등록되었습니다.', 'success');
-
-            // [수정됨] 작업 탭 유지
-            window.location.hash = 'tab-work';
-            window.location.reload();
+            window.location.reload(); // 페이지 새로고침 (목록 갱신)
         } else {
             Swal.fire('오류', json.message, 'error');
         }
@@ -103,7 +140,9 @@ async function createWork() {
     }
 }
 
+// ==============================================================
 // [3] 작업 수정
+// ==============================================================
 function triggerEditFromDetail() {
     if(currentDetailId) openWorkEditModal(currentDetailId);
 }
@@ -167,9 +206,6 @@ async function updateWork() {
 
         if(json.ok) {
             await Swal.fire('수정 완료', '작업 정보가 수정되었습니다.', 'success');
-
-            // [수정됨] 작업 탭 유지
-            window.location.hash = 'tab-work';
             window.location.reload();
         } else {
             Swal.fire('오류', json.message, 'error');
@@ -179,7 +215,9 @@ async function updateWork() {
     }
 }
 
-// [4] 첨부파일 개별 삭제 (수정 모달 내부) - 변경 없음 (새로고침 안함)
+// ==============================================================
+// [4] 첨부파일 삭제
+// ==============================================================
 async function deleteAttachment(attId, workId) {
     const result = await Swal.fire({
         title: '파일 삭제',
@@ -197,6 +235,7 @@ async function deleteAttachment(attId, workId) {
         const res = await fetch(`/work/ajax/attachments/${attId}/delete`, { method: 'POST' });
         const json = await res.json();
         if(json.ok) {
+            // 목록 새로고침 없이 해당 파일만 목록에서 제거 (UI 갱신)
             const attRes = await fetch(`/work/ajax/${workId}/attachments`).then(r=>r.json());
             const fileList = document.getElementById('edit_file_list');
             const items = attRes.items || [];
@@ -221,7 +260,9 @@ async function deleteAttachment(attId, workId) {
     }
 }
 
+// ==============================================================
 // [5] 작업 삭제
+// ==============================================================
 async function deleteWork(workId) {
     const result = await Swal.fire({
         title: '정말 삭제하시겠습니까?',
@@ -240,9 +281,6 @@ async function deleteWork(workId) {
 
             if(json.ok) {
                 await Swal.fire('삭제됨', '작업이 삭제되었습니다.', 'success');
-
-                // [수정됨] 작업 탭 유지
-                window.location.hash = 'tab-work';
                 window.location.reload();
             } else {
                 Swal.fire('오류', json.message, 'error');

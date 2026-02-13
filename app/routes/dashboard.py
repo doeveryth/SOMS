@@ -7,11 +7,12 @@ from ..extensions import db
 from ..models.work_info import WorkInfo
 from ..models.ctm_people import CTMPeople
 from ..models.sr_ticket import SRTicket  # [추가] SR 모델 임포트
+from flask_login import login_required, current_user
 
 bp = Blueprint('dashboard', __name__, url_prefix='/')
 
-
 @bp.route('/')
+@login_required
 def index():
     today = date.today()
     year = today.year

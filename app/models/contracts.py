@@ -1,32 +1,25 @@
-from sqlalchemy import Text, BigInteger, Date, DateTime, ForeignKey, Numeric
+from sqlalchemy import Text, Integer, Date, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
-
 from ..extensions import db
 
 
 class Contract(db.Model):
     __tablename__ = "Contracts"
 
-    Contract_ID: Mapped[int] = mapped_column("Contract_ID", BigInteger, primary_key=True, autoincrement=True, quote=True)
-    Person_ID: Mapped[str] = mapped_column(
-        "Person_ID", Text, ForeignKey('CTM_People.Person_ID'), nullable=False, quote=True
-    )
+    Contract_ID: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    Person_ID: Mapped[str] = mapped_column(Text, ForeignKey('CTM_People.Person_ID'), nullable=False)
 
-    Contract_Name: Mapped[str | None] = mapped_column("Contract_Name", Text, quote=True)
-    Contract_Amount: Mapped[object | None] = mapped_column("Contract_Amount", Numeric(18, 2), quote=True)
-    Currency: Mapped[str | None] = mapped_column("Currency", Text, quote=True)
+    # 계약 핵심 정보
+    Service_Type: Mapped[str | None] = mapped_column(Text)  # [추가됨] 서비스 유형 (BK, CO_BA 등)
+    Service_Number: Mapped[str | None] = mapped_column(Text)  # 서비스 번호
+    Service_Status: Mapped[str | None] = mapped_column(Text)  # 상태
+    Contract_Amount: Mapped[str | None] = mapped_column(Text)  # 계약 금액
 
-    Contract_Start_Date: Mapped[object | None] = mapped_column("Contract_Start_Date", Date, quote=True)
-    Contract_End_Date: Mapped[object | None] = mapped_column("Contract_End_Date", Date, quote=True)
+    Open_Date: Mapped[object | None] = mapped_column(Date)  # 개통일
+    Terminate_Date: Mapped[object | None] = mapped_column(Date)  # 해지일
+    Contract_Note: Mapped[str | None] = mapped_column(Text)  # 비고
 
-    Contract_Notes: Mapped[str | None] = mapped_column("Contract_Notes", Text, quote=True)
-
-    Submitter: Mapped[str] = mapped_column("Submitter", Text, nullable=False, quote=True)
-    Create_Date: Mapped[datetime] = mapped_column("Create_Date", DateTime, nullable=False, default=datetime.utcnow, quote=True)
-
-    Updater: Mapped[str | None] = mapped_column("Updater", Text, quote=True)
-    Update_Date: Mapped[datetime | None] = mapped_column("Update_Date", DateTime, quote=True)
-
-    Deleted_YN: Mapped[str] = mapped_column("Deleted_YN", Text, nullable=False, default="N", quote=True)
-    Deleted_At: Mapped[datetime | None] = mapped_column("Deleted_At", DateTime, quote=True)
+    Create_Date: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    Deleted_YN: Mapped[str] = mapped_column(Text, default="N", nullable=False)
+    Deleted_At: Mapped[datetime | None] = mapped_column(DateTime)

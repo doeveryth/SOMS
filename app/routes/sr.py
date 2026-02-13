@@ -25,40 +25,44 @@ def _clean(value: str | None) -> str | None:
     return v if v else None
 
 
-@bp.get("")
+@bp.route("/list", methods=["GET"])
 @login_required
 def list_sr():
+    # 1. 검색 조건 받기
     location = (request.args.get("location") or "").strip()
     company = (request.args.get("company") or "").strip()
     content = (request.args.get("content") or "").strip()
-
     date_from_str = request.args.get("from", "")
     date_to_str = request.args.get("to", "")
     date_from = _parse_date(date_from_str)
     date_to = _parse_date(date_to_str)
 
-    query = db.session.query(SRTicket)
+    # [수정] 페이지 번호 받기 (기본 1)
+    page = request.args.get('page', 1, type=int)
 
-    filters = []
-    if location: filters.append(SRTicket.location.ilike(f"%{location}%"))
-    if company: filters.append(SRTicket.company.ilike(f"%{company}%"))
-    if content: filters.append(SRTicket.content.ilike(f"%{content}%"))
-    if date_from: filters.append(SRTicket.request_date >= date_from)
-    if date_to: filters.append(SRTicket.request_date <= date_to)
+    # 2. 쿼리 구성
+    query = SRTicket.query  # db.session.query(SRTicket) 과 동일
 
-    if filters:
-        query = query.filter(and_(*filters))
+    if location: query = query.filter(SRTicket.location.ilike(f"%{location}%"))
+    if company: query = query.filter(SRTicket.company.ilike(f"%{company}%"))
+    if content: query = query.filter(SRTicket.content.ilike(f"%{content}%"))
+    if date_from: query = query.filter(SRTicket.request_date >= date_from)
+    if date_to: query = query.filter(SRTicket.request_date <= date_to)
 
+    # 3. 정렬 및 페이지네이션
     # 최신순 정렬
-    items = query.order_by(SRTicket.request_date.desc(), SRTicket.sr_id.desc()).limit(500).all()
+    query = query.order_by(SRTicket.request_date.desc(), SRTicket.sr_id.desc())
 
-    # [수정] 사이트 목록 조회 (회사명, 사이트명 순 정렬)
-    # 템플릿에서 '사이트명 (회사명)' 형태로 보여주기 위함
-    customers = db.session.query(CTMPeople).order_by(CTMPeople.Company, CTMPeople.Last_Name).all()
+    # [수정] paginate 적용 (한 페이지당 10개)
+    per_page = 10
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    # 사이트 목록 (모달용)
+    customers = CTMPeople.query.order_by(CTMPeople.Company, CTMPeople.Last_Name).all()
 
     return render_template(
         "sr/list.html",
-        items=items,
+        pagination=pagination,  # items 대신 pagination 객체 전달
         customers=customers,
         filters={
             "location": location,

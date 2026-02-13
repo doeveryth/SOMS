@@ -48,6 +48,35 @@ function formatBytes(bytes) {
     return `${val.toFixed(val < 10 && i > 0 ? 1 : 0)} ${sizes[i]}`;
 }
 
+// 페이지 로딩 즉시 실행
+    document.addEventListener("DOMContentLoaded", function() {
+        // 모든 탭 패널을 찾습니다.
+        const panes = document.querySelectorAll('.tab-pane');
+
+        function fixLayout() {
+            panes.forEach(pane => {
+                // 'active' 클래스가 없으면 강제로 숨김 처리 (자리를 차지하지 않게 함)
+                if (!pane.classList.contains('active')) {
+                    pane.style.setProperty('display', 'none', 'important');
+                } else {
+                    // 활성화된 탭은 보이게 함
+                    pane.style.setProperty('display', 'block', 'important');
+                }
+            });
+        }
+
+        // 1. 초기 로딩 시 실행
+        fixLayout();
+
+        // 2. 탭 버튼을 클릭할 때마다 실행 (탭 전환 시 레이아웃 깨짐 방지)
+        const tabButtons = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabButtons.forEach(btn => {
+            btn.addEventListener('shown.bs.tab', fixLayout); // 탭 전환 완료 후 실행
+            btn.addEventListener('click', () => setTimeout(fixLayout, 50)); // 클릭 직후 약간의 딜레이 후 실행
+        });
+    });
+
+
 async function loadWorkAttachments(workId) {
     const el = document.getElementById("workDetailAttachments");
     if (!el) return;

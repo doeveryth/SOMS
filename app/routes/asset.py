@@ -1,11 +1,12 @@
 from datetime import datetime, date
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, render_template, request, jsonify,flash,url_for, redirect
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 
 from ..extensions import db
 from ..models.ast_computersystem import AST_Computer_System
 from ..models.ctm_people import CTMPeople
+from ..models.servers import ServerInfo
 
 bp = Blueprint('asset', __name__, url_prefix='/asset')
 
@@ -60,51 +61,47 @@ def ajax_save_asset():
     try:
         asset_id = request.form.get('asset_id')
         person_id = request.form.get('person_id')
-        ci_name = request.form.get('ci_name', '').strip()  # 공백 제거
+        ci_name = request.form.get('ci_name', '').strip()
+        owner_name = request.form.get('owner_name', '').strip()  # 폼에서 직접 받음
 
-        # [수정] 필수값 체크: 고객사 + CI 이름 필수
+        # 1. 필수값 체크
         if not person_id:
-            return jsonify({'ok': False, 'message': '고객사를 선택해주세요.'})
-        if not ci_name:
-            return jsonify({'ok': False, 'message': 'CI 이름(장비 식별명)은 필수 입력 항목입니다.'})
+            return jsonify({'ok': False, 'message': '고객사 정보(Person_ID)가 누락되었습니다.'})
+        if not ci_name or not owner_name:
+            return jsonify({'ok': False, 'message': 'CI 이름과 사이트명은 필수입니다.'})
 
-        # 이름 중복 체크 (신규 등록이거나, 수정인데 이름이 바뀐 경우)
-        existing = db.session.query(AST_Computer_System).filter_by(Name=ci_name).first()
-        if existing:
-            # 수정 모드인데 내 ID가 아니면 중복 (즉, 다른 장비가 이미 사용 중)
-            if not asset_id or (asset_id and str(existing.Asset_ID) != str(asset_id)):
-                return jsonify({'ok': False, 'message': f"이미 존재하는 CI 이름입니다: {ci_name}"})
+        # [수정 핵심] 고객 정보 조회 (PK가 아닌 Person_ID 컬럼으로 검색)
+        customer = db.session.query(CTMPeople).filter(CTMPeople.Person_ID == person_id).first()
+        if not customer:
+            return jsonify({'ok': False, 'message': '존재하지 않는 고객사입니다.'})
 
-        # 고객 정보 조회
-        customer = db.session.query(CTMPeople).filter_by(Person_ID=person_id).first()
-        owner_name = customer.Company if customer else 'Unknown'
-
+        # 2. Asset 객체 가져오기 또는 생성
         if asset_id:
             asset = db.session.get(AST_Computer_System, asset_id)
-            if not asset: return jsonify({'ok': False, 'message': '장비 없음'})
+            if not asset:
+                return jsonify({'ok': False, 'message': '수정할 장비 정보를 찾을 수 없습니다.'})
         else:
             asset = AST_Computer_System()
-            asset.Owner_name = owner_name
-            asset.Company = owner_name
-            asset.Submitter = getattr(current_user, 'user_id', 'System')
+            asset.Submitter = getattr(current_user, 'user_name', 'System')
 
-        # 1. 기본/식별 정보
+        # 3. 기본 정보 매핑
         asset.Person_ID = person_id
-        asset.Name = ci_name  # [수정] 입력받은 이름 그대로 사용
-        asset.Owner_name = owner_name
+        asset.Name = ci_name
+        asset.Owner_name = owner_name       # 입력받은 사이트명
+        asset.Company = customer.Company    # [수정] 위에서 조회한 customer 객체의 회사명 사용
 
-        # 2. 분류 정보
+        # 4. 분류 정보
         asset.Category = request.form.get('category')
         asset.Type = request.form.get('type')
         asset.Item = request.form.get('item')
 
-        # 3. 제품 정보
+        # 5. 제품 정보
         asset.Supplier = request.form.get('supplier')
         asset.Product_Name = request.form.get('product_name')
         asset.Model_Number = request.form.get('model_number')
         asset.Manufacturer_Name = request.form.get('manufacturer_name')
 
-        # 4. 상세 식별 정보
+        # 6. 상세 식별 정보
         asset.Serial_Number = request.form.get('serial_number')
         asset.Version_Number = request.form.get('os_version')
         asset.IP_Address = request.form.get('ip_address')
@@ -113,33 +110,36 @@ def ajax_save_asset():
         asset.Short_Description = request.form.get('ci_note')
         asset.Description = request.form.get('description')
 
-        # 5. 운영 정보
+        # 7. 운영 정보
         asset.Maintenance_Company = request.form.get('maintenance_company')
         asset.Operation_Company = request.form.get('operation_company')
         asset.Operation_Mode = request.form.get('operation_mode')
 
-        # 6. 백업 설정
+        # 8. 백업 설정
         asset.C_backup = request.form.get('c_backup')
         asset.C_cycle = request.form.get('c_cycle')
         asset.C_note = request.form.get('cfg_note')
 
-        # 7. 날짜 및 상태
+        # 9. 날짜 및 상태
         asset.AssetLifecycleStatus = request.form.get('lifecycle_status')
         asset.PurchaseDate = _parse_date(request.form.get('purchase_date'))
+        asset.Receive_Date = _parse_date(request.form.get('receive_date')) # 입고일 추가
         asset.InstallationDate = _parse_date(request.form.get('installation_date'))
+        asset.ReturnDate = _parse_date(request.form.get('return_date')) # 반환일 추가
         asset.License_Expiry_Date = _parse_date(request.form.get('license_expiry'))
         asset.Disposal_Date = _parse_date(request.form.get('disposal_date'))
 
+        # 신규 등록인 경우 세션에 추가
         if not asset_id:
             db.session.add(asset)
-
-        # [삭제됨] 자동 이름 생성 로직 (generate_unique_name) 호출 부분 제거
 
         db.session.commit()
         return jsonify({'ok': True})
 
     except Exception as e:
         db.session.rollback()
+        # 에러 로그를 콘솔에도 출력해서 확인하기 쉽도록 함
+        print(f"Asset Save Error: {str(e)}")
         return jsonify({'ok': False, 'message': str(e)})
 
 
@@ -152,3 +152,72 @@ def ajax_delete_asset(asset_id):
         db.session.commit()
         return jsonify({'ok': True})
     return jsonify({'ok': False, 'message': '삭제 실패'})
+
+
+# ==============================================================
+# [NEW] 서버 자산 전체 조회 및 등록 페이지
+# ==============================================================
+# ==============================================================
+# [NEW] 서버 자산 전체 조회 및 등록 페이지
+# ==============================================================
+@bp.route('/servers', methods=['GET', 'POST'])
+@login_required
+def list_servers():
+    # 1. [POST] 신규 서버 등록
+    if request.method == 'POST':
+        try:
+            person_id = request.form.get('Person_ID')
+            server_name = request.form.get('server_name')
+            server_ip = request.form.get('server_ip')
+
+            if not person_id or not server_name:
+                flash('고객사와 서버 이름은 필수 항목입니다.', 'danger')
+                return redirect(url_for('asset.list_servers'))
+
+            submitter = getattr(current_user, 'User_Name', getattr(current_user, 'name', 'System'))
+
+            new_server = ServerInfo(
+                Person_ID=person_id,
+                chServerName=server_name,
+                chServerInfo=server_ip,
+                Submitter=submitter,
+                Create_Date=datetime.now()
+            )
+            db.session.add(new_server)
+            db.session.commit()
+            flash('서버가 성공적으로 등록되었습니다.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'등록 중 오류 발생: {str(e)}', 'danger')
+
+        return redirect(url_for('asset.list_servers'))
+
+    # 2. [GET] 목록 조회 (페이지네이션 + 검색)
+    page = request.args.get('page', 1, type=int)  # 페이지 번호
+    q = request.args.get('q', '')
+
+    query = db.session.query(ServerInfo, CTMPeople) \
+        .join(CTMPeople, ServerInfo.Person_ID == CTMPeople.Person_ID)
+
+    if q:
+        search = f"%{q}%"
+        query = query.filter(or_(
+            ServerInfo.chServerName.ilike(search),
+            ServerInfo.chServerInfo.ilike(search),
+            CTMPeople.Company.ilike(search)
+        ))
+
+    # [수정] paginate 적용 (한 페이지당 15개)
+    per_page = 15
+    pagination = query.order_by(desc(ServerInfo.Create_Date)) \
+        .paginate(page=page, per_page=per_page, error_out=False)
+
+    # 등록 모달용 전체 고객 리스트
+    customers = CTMPeople.query.order_by(CTMPeople.Company).all()
+
+    return render_template(
+        'asset/server_list.html',
+        pagination=pagination,  # rows 대신 pagination 객체 전달
+        customers=customers,
+        q=q
+    )

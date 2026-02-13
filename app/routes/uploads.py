@@ -23,7 +23,7 @@ def allowed_file(filename: str) -> bool:
 @bp.post("/notes/<int:note_id>")
 @login_required
 def upload_note_attachment(note_id: int):
-    note = db.session.get(CustomerNote, note_id)
+    note = db.session.get(note_id)
     if not note or note.Deleted_YN == "Y":
         flash("대상 특이사항을 찾을 수 없습니다.", "warning")
         return redirect(url_for("dashboard.index"))

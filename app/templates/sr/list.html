@@ -7,7 +7,7 @@
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h4 class="fw-bold mb-1 text-dark">SR 관리</h4>
-            <div class="text-muted small">고객사 요청사항(SR) 접수 및 처리 현황</div>
+            <div class="text-muted">전체 SR 이력 관리 및 신규 등록</div>
         </div>
         <button class="btn btn-primary btn-sm shadow-sm" onclick="openSrModal()">
             <i class="bi bi-plus-lg me-1"></i>SR 등록
@@ -50,6 +50,11 @@
     </div>
 
     <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3">
+             <h6 class="fw-bold m-0 text-primary">
+                 <i class="bi bi-list-ul me-2"></i>SR 목록 (총 {{ pagination.total }}건)
+             </h6>
+        </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0" style="min-width: 1000px;">
                 <thead class="table-light">
@@ -66,7 +71,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for it in items %}
+                    {% for it in pagination.items %}
                     <tr style="cursor: pointer;" onclick="openSrDetailModal({{ it.sr_id }})">
                         <td class="ps-3 text-center text-muted small">{{ it.sr_id }}</td>
                         <td><span class="badge bg-light text-dark border">{{ it.location }}</span></td>
@@ -114,6 +119,45 @@
                 </tbody>
             </table>
         </div>
+
+        {% if pagination.pages > 1 %}
+        <div class="card-footer bg-white border-top-0 py-3">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link border-0 rounded-circle mx-1"
+                           href="{{ url_for('sr.list_sr', page=pagination.prev_num, location=filters.location, company=filters.company, content=filters.content, from=filters['from'], to=filters['to']) if pagination.has_prev else '#' }}">
+                           &laquo;
+                        </a>
+                    </li>
+
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            {% if p == pagination.page %}
+                            <li class="page-item active"><span class="page-link border-0 rounded-circle mx-1">{{ p }}</span></li>
+                            {% else %}
+                            <li class="page-item">
+                                <a class="page-link border-0 rounded-circle mx-1 text-secondary"
+                                   href="{{ url_for('sr.list_sr', page=p, location=filters.location, company=filters.company, content=filters.content, from=filters['from'], to=filters['to']) }}">
+                                   {{ p }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link border-0 mx-1">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link border-0 rounded-circle mx-1"
+                           href="{{ url_for('sr.list_sr', page=pagination.next_num, location=filters.location, company=filters.company, content=filters.content, from=filters['from'], to=filters['to']) if pagination.has_next else '#' }}">
+                           &raquo;
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -233,7 +277,4 @@
         </div>
     </div>
 </div>
-
-<script>
-</script>
 {% endblock %}

@@ -2,7 +2,7 @@ import os
 from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_file, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from datetime import datetime
 import uuid
 import json
@@ -59,11 +59,11 @@ def _parse_date(value: str | None):
 @bp.route("", methods=["GET", "POST"])
 @login_required
 def list_customers():
-    # [POST] 고객 등록 로직 (기존과 동일)
+    # [POST] 신규 고객 등록 로직
     if request.method == "POST":
         company = request.form.get("Company", "").strip()
         if not company:
-            flash("고객명은 필수입니다.", "danger")
+            flash("고객사명은 필수 입력 항목입니다.", "danger")
             return redirect(url_for("customers.list_customers"))
 
         person_id = f"P-{uuid.uuid4().hex[:12]}"
@@ -71,55 +71,96 @@ def list_customers():
         people = CTMPeople(
             Person_ID=person_id,
             Company=company,
-            Last_Name=request.form.get("Last_Name") or None,
-            Service_Type=request.form.get("Service_Type") or None,
-            Open_Date=_parse_date(request.form.get("Open_Date")),
-            Terminate_Date=_parse_date(request.form.get("Terminate_Date")),
-            Service_Number=request.form.get("Service_Number") or None,
-            Service_Status=request.form.get("Service_Status") or None,
-            IDC=request.form.get("IDC") or None,
-            Rack_Location=request.form.get("Rack_Location") or None,
-            Client_Sensitivity=request.form.get("Client_Sensitivity") or None,
-            Report_YN=request.form.get("Report_YN") or None,
-            Sales_Manager=request.form.get("Sales_Manager") or None,
+            Business_Type=request.form.get("Business_Type"),
+            Business_Detail=request.form.get("Business_Detail"),
+            IDC=request.form.get("IDC"),
+            Rack_Location=request.form.get("Rack_Location"),
+            Service_URL__c=request.form.get("Service_URL"),
+            Client_Sensitivity=request.form.get("Client_Sensitivity"),
+            Report_YN=request.form.get("Report_YN"),
+            Sales_Manager=request.form.get("Sales_Manager")
         )
 
-        db.session.add(people)
-        db.session.commit()
-        flash("고객이 등록되었습니다.", "success")
-        return redirect(url_for("customers.detail", person_id=people.Person_ID))
+        try:
+            db.session.add(people)
+            db.session.commit()
+            flash("신규 고객이 성공적으로 등록되었습니다.", "success")
+            return redirect(url_for("customers.detail", person_id=person_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"등록 중 오류 발생: {str(e)}", "danger")
+            return redirect(url_for("customers.list_customers"))
 
-    # [GET] 조회 및 필터링 로직 (여기 수정됨)
+    # [GET] 리스트 조회 로직 (여기가 중요합니다!)
+    page = request.args.get('page', 1, type=int)  # 페이지 번호 받기
     q = request.args.get("q", "").strip()
-    status = request.args.get("status", "").strip()
+    idc = request.args.get("idc", "").strip()
     sensitivity = request.args.get("sensitivity", "").strip()
+    report = request.args.get("report", "").strip()
 
     query = db.session.query(CTMPeople)
 
-    # 1. 텍스트 검색 (이름, 사이트, 번호, DC, 유형)
+    # 1. 통합 검색
     if q:
+        search_keyword = f"%{q}%"
         query = query.filter(
             or_(
-                CTMPeople.Company.ilike(f"%{q}%"),
-                CTMPeople.Last_Name.ilike(f"%{q}%"),
-                CTMPeople.Service_Number.ilike(f"%{q}%"),
-                CTMPeople.IDC.ilike(f"%{q}%"),
-                CTMPeople.Service_Type.ilike(f"%{q}%"),
+                CTMPeople.Company.ilike(search_keyword),
+                CTMPeople.Sales_Manager.ilike(search_keyword),
+                CTMPeople.Rack_Location.ilike(search_keyword)
             )
         )
 
-    # 2. 상태 필터 (Dropdown) - AND 조건
-    if status:
-        query = query.filter(CTMPeople.Service_Status == status)
-
-    # 3. 민감도 필터 (Dropdown) - AND 조건
+    # 2. 필터 적용
+    if idc:
+        query = query.filter(CTMPeople.IDC == idc)
     if sensitivity:
         query = query.filter(CTMPeople.Client_Sensitivity == sensitivity)
+    if report:
+        if report == '0':
+            query = query.filter(or_(CTMPeople.Report_YN == '0', CTMPeople.Report_YN == 'Y'))
+        elif report == '1':
+            query = query.filter(or_(CTMPeople.Report_YN == '1', CTMPeople.Report_YN == 'N'))
 
-    people = query.order_by(CTMPeople.Company.asc().nulls_last()).limit(200).all()
+    # [수정 핵심] .all() 대신 .paginate() 사용
+    per_page = 15
+    pagination = query.order_by(CTMPeople.Company.asc())\
+                      .paginate(page=page, per_page=per_page, error_out=False)
 
-    # 템플릿에 필터 상태(q, status, sensitivity)를 다시 전달하여 유지시킴
-    return render_template("customers/list.html", people=people, q=q, status=status, sensitivity=sensitivity)
+    # ---------------------------------------------------------
+    # [추가] 상단 대시보드 통계 계산
+    # ---------------------------------------------------------
+
+    # 1. VIP / 민감 고객 (민감: '0', VIP: '2')
+    count_vip = db.session.query(func.count(CTMPeople.Person_ID)) \
+                    .filter(CTMPeople.Client_Sensitivity.in_(['0', '2'])).scalar() or 0
+
+    # 2. 정기 레포트 발송 대상 (발송: '0' 또는 'Y')
+    count_report = db.session.query(func.count(CTMPeople.Person_ID)) \
+                       .filter(or_(CTMPeople.Report_YN == '0', CTMPeople.Report_YN == 'Y')).scalar() or 0
+
+    # 3. 이번 달 신규 등록
+    # (주의: CTMPeople 테이블에 등록일(Reg_Date)이나 개통일(Open_Date) 컬럼이 있어야 작동합니다)
+    # 여기서는 Open_Date를 기준으로 예시를 작성했습니다.
+    from datetime import date
+    today = date.today()
+    start_of_month = today.replace(day=1)
+
+    count_new = db.session.query(func.count(CTMPeople.Person_ID)) \
+                    .filter(CTMPeople.Open_Date >= start_of_month).scalar() or 0
+
+    # ---------------------------------------------------------
+
+    # [수정] render_template에 카운트 변수 추가 전달
+    return render_template(
+        "customers/list.html",
+        pagination=pagination,
+        q=q, idc=idc, sensitivity=sensitivity, report=report,
+        # [여기 추가]
+        count_vip=count_vip,
+        count_report=count_report,
+        count_new=count_new
+    )
 
 def _split_handler(detail: str | None):
     if not detail:
@@ -205,66 +246,48 @@ def detail(person_id: str):
     )
 
 
-# [고객 정보 수정 - AJAX 방식]
-@bp.post("/<person_id>/update")  # 1. 자바스크립트 경로와 일치시킴 (/edit -> /update)
+@bp.post("/<person_id>/update")
 @login_required
 def update_customer_info(person_id: str):
-    # 1. DB에서 사용자 조회
     people = db.session.query(CTMPeople).filter(CTMPeople.Person_ID == person_id).first()
-
     if not people:
-        # 2. 에러 시 JSON 반환
         return jsonify({"ok": False, "message": "고객을 찾을 수 없습니다."}), 404
 
     try:
-        # 3. 데이터 매핑 (기존 로직 유지)
+        # [수정] 순수 고객 및 인프라 정보만 업데이트
         people.Company = request.form.get("company", "").strip()
-        people.Last_Name = request.form.get("last_name") or None
-        people.Service_Type = request.form.get("service_type") or None
-        people.Service_Status = request.form.get("profile_status") or None
-
         people.Business_Type = request.form.get("industry_category") or None
         people.Business_Detail = request.form.get("industry_detail") or None
-
         people.Client_Sensitivity = request.form.get("client_sensitivity") or None
         people.Report_YN = request.form.get("report_yn") or None
-
-        people.Service_URL__c = request.form.get("service_url") or None
-        people.Service_Number = request.form.get("service_number") or None
-        people.Customer_Folder = request.form.get("customer_folder") or None
-
-        people.Open_Date = _parse_date(request.form.get("open_date"))
-        people.Terminate_Date = _parse_date(request.form.get("close_date"))
+        people.Sales_Manager = request.form.get("sales_manager") or None
 
         people.IDC = request.form.get("dc_location") or None
         people.Rack_Location = request.form.get("rack_location") or None
+        people.Service_URL__c = request.form.get("service_url") or None
+        people.Customer_Folder = request.form.get("customer_folder") or None
 
-        # [4. 중요!] 신규 추가된 계약 관련 필드 매핑
-        people.Contract_Amount = request.form.get("contract_amount") or None
-        people.Contract_Note = request.form.get("contract_note") or None
+        # [삭제됨] 계약 정보 필드들 (Service_Type, Number, Amount, Dates 등)
+        # 아래 필드들은 이제 Contract 테이블에서 관리하므로 여기서 지워야 합니다.
 
-        # 백업 정보
+        # 백업 정보 및 [신규] 백업 업체
         people.Backup_Service = request.form.get("backup_service_yn") or None
+        people.Backup_Vendor = request.form.get("backup_vendor") or None  # 추가
         people.Backup_Type = request.form.get("backup_type") or None
         people.Backup_Period = request.form.get("backup_period_volume") or None
         people.Backup_Path = request.form.get("backup_path") or None
 
-        # 보안 솔루션
+        # 보안 솔루션 및 메모
         people.Vaccine__c = request.form.get("vaccine_yn") or None
         people.ShellMonitor__c = request.form.get("shell_monitor_yn") or None
-
-        # 메모 및 특이사항
         people.chHistory = request.form.get("intrusion_notes") or None
         people.chEtc = request.form.get("customer_notes") or None
 
         db.session.commit()
-
-        # 5. 성공 시 JSON 반환 (SweetAlert가 이걸 받아서 처리함)
         return jsonify({"ok": True, "message": "고객 정보가 수정되었습니다."})
-
     except Exception as e:
         db.session.rollback()
-        return jsonify({"ok": False, "message": f"수정 중 오류 발생: {str(e)}"}), 500
+        return jsonify({"ok": False, "message": str(e)}), 500
 
 
 # 날짜 변환 헬퍼 함수 (필요한 경우 함수 밖이나 위에 정의)
@@ -366,27 +389,6 @@ def delete_contact(person_id, contact_id):
         return jsonify({"ok": False, "message": str(e)}), 500
 
 
-@bp.post("/<person_id>/contracts")
-@login_required
-def add_contract(person_id: str):
-    contract = Contract(
-        Person_ID=person_id,
-        Contract_Name=request.form.get("Contract_Name") or None,
-        Contract_Amount=request.form.get("Contract_Amount") or None,
-        Currency=request.form.get("Currency") or None,
-        Contract_Start_Date=_parse_date(request.form.get("Contract_Start_Date")),
-        Contract_End_Date=_parse_date(request.form.get("Contract_End_Date")),
-        Contract_Notes=request.form.get("Contract_Notes") or None,
-        Submitter=current_user.user_id,
-        Create_Date=datetime.utcnow(),
-        Deleted_YN="N",
-    )
-    db.session.add(contract)
-    db.session.commit()
-    flash("계약이 추가되었습니다.", "success")
-    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-admin"))
-
-
 @bp.post("/<person_id>/ci/<int:asset_id>/delete")
 @login_required
 def delete_ci(person_id: str, asset_id: int):
@@ -400,286 +402,6 @@ def delete_ci(person_id: str, asset_id: int):
     flash("보안장비가 삭제되었습니다.", "success")
     return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-assets"))
 
-
-
-@bp.post("/<person_id>/contracts/<int:contract_id>/delete")
-@login_required
-def delete_contract(person_id: str, contract_id: int):
-    item = db.session.get(Contract, contract_id)
-    if not item or item.Person_ID != person_id:
-        flash("계약을 찾을 수 없습니다.", "warning")
-        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-admin"))
-
-    item.Deleted_YN = "Y"
-    item.Deleted_At = datetime.utcnow()
-    db.session.commit()
-    flash("계약이 삭제(숨김)되었습니다.", "success")
-    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-admin"))
-
-
-@bp.get('/<person_id>/assets')
-@login_required
-def view_assets(person_id):
-    """보안장비 목록 조회"""
-    people = db.session.query(CTMPeople).filter(CTMPeople.Person_ID == person_id).first_or_404()
-    assets = db.session.query(AST_Computer_System).filter(AST_Computer_System.Person_ID == person_id).all()
-    return render_template('customers/assets.html', people=people, assets=assets)
-
-
-@bp.route('/<person_id>/assets/add', methods=['GET', 'POST'])
-@login_required
-def add_asset(person_id):
-    """보안장비 등록"""
-    people = db.session.query(CTMPeople).filter(CTMPeople.Person_ID == person_id).first_or_404()
-
-    if request.method == 'POST':
-        # 1. 사용자 입력 장비명 가져오기
-        input_ci_name = request.form.get('ci_name', '').strip()
-
-        # Owner_name 자동 설정 (회사명 우선)
-        owner_name = people.Last_Name or people.Company
-
-        if input_ci_name:
-            # 사용자가 입력한 경우 그대로 사용
-            ci_name = input_ci_name
-        else:
-            # 2. 입력이 없을 경우 기존 자동 생성 로직 (Fallback)
-            type_input = request.form.get('type', '').strip()
-            type_abbr = convert_type_to_abbreviation(type_input)
-            ci_name = generate_unique_ci_name(owner_name, type_abbr)
-
-        # DB 모델 생성
-        asset = AST_Computer_System(
-            Person_ID=person_id,
-            Company=people.Company,
-            Owner_name=owner_name,
-
-            # [수정됨] 결정된 CI 이름 저장
-            Name=ci_name,
-
-            # 기본 장비 정보
-            Category=request.form.get('category'),
-            Type=request.form.get('type'),
-            Item=request.form.get('item'),
-
-            # 하드웨어 스펙
-            Product_Name=request.form.get('product_name'),
-            Model_Number=request.form.get('model_number'),
-            Manufacturer_Name=request.form.get('manufacturer_name'),
-
-            # 식별 정보
-            Serial_Number=request.form.get('serial_number'),
-            IP_Address=request.form.get('ip_info'),  # HTML name='ip_info' 매핑
-
-            # 운영 정보
-            Supplier=request.form.get('supplier'),
-            Maintenance_Company=int(request.form.get('maintenance_company', 0)),
-            Operation_Company=int(request.form.get('operation_company', 0)),
-            Operation_Mode=int(request.form.get('operation_mode', 0)),
-            IDC_Site=request.form.get('idc_site'),
-
-            # 백업 설정
-            C_backup=int(request.form.get('c_backup', 0)),
-            C_cycle=int(request.form.get('c_cycle')) if request.form.get('c_cycle') else None,
-            C_note=request.form.get('cfg_note'),
-
-            # 기타 및 상태
-            Short_Description=request.form.get('ci_note'),  # 장비 특이사항
-            Description=request.form.get('description'),  # 비고
-            AssetLifecycleStatus=int(request.form.get('lifecycle_status', 3)),
-
-            # 아래 필드들은 폼에 없으면 None 혹은 기본값 처리
-            Version_Number=request.form.get('version_number'),
-            Service_URL__c=request.form.get('service_url'),
-            Supported=int(request.form.get('supported', 0)),
-            Region=request.form.get('region'),
-            Owner=request.form.get('owner'),
-
-            Submitter = current_user.user_name if hasattr(current_user, 'user_name') else 'Unknown',
-            Update_Date = datetime.now(),
-        )
-
-        # 날짜 필드 처리 (빈 문자열 에러 방지)
-        date_fields = {
-            'installation_date': 'InstallationDate',
-            'disposal_date': 'Disposal_Date',
-            'license_expiry': 'License_Expiry_Date'
-        }
-
-        for field, attr in date_fields.items():
-            date_str = request.form.get(field)
-            if date_str:
-                try:
-                    setattr(asset, attr, datetime.strptime(date_str, '%Y-%m-%d').date())
-                except ValueError:
-                    pass  # 날짜 형식이 잘못된 경우 무시 (혹은 로깅)
-
-        try:
-            db.session.add(asset)  # asset.save() 대신 session.add 권장 (SQLAlchemy 버전에 따라 다름)
-            db.session.commit()
-            flash(f'보안장비가 등록되었습니다. (장비명: {ci_name})', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'장비 등록 중 오류가 발생했습니다: {str(e)}', 'danger')
-
-        return redirect(url_for('customers.detail', person_id=person_id, _anchor='tab-assets'))
-
-    return render_template('customers/detail.html', people=people)
-
-
-def convert_type_to_abbreviation(type_input):
-    """장비 유형을 약어로 변환"""
-    type_lower = type_input.lower()
-
-    type_map = {
-        'FW': ['방화벽', 'firewall', 'f/w', 'ngfw'],
-        'SW': ['스위치', 'switch', 'l4', 'l3', 'backbone'],
-        'RT': ['라우터', 'router'],
-        'SV': ['서버', 'server'],
-        'WAF': ['웹방화벽', 'waf', 'web firewall'],
-        'IPS': ['ips', '침입방지'],
-        'IDS': ['ids'],
-        'DDOS': ['ddos', '디도스'],
-        'UTM': ['utm'],
-        'VPN': ['vpn'],
-        'AP': ['ap', 'access point']
-    }
-
-    for abbr, keywords in type_map.items():
-        if any(keyword in type_lower for keyword in keywords):
-            return abbr
-
-    return type_input.upper().replace(' ', '_')
-
-
-def generate_unique_ci_name(owner_name, type_abbr):
-    """중복되지 않는 CI 이름 생성"""
-    base_name = f"{owner_name}_{type_abbr}"
-
-    # 같은 패턴으로 시작하는 모든 장비 조회
-    existing_assets = db.session.query(AST_Computer_System).filter(
-        AST_Computer_System.Name.like(f"{base_name}_%")
-    ).all()
-
-    if not existing_assets:
-        return f"{base_name}_1"
-
-    # 기존 인덱스 추출
-    existing_indices = []
-    for asset in existing_assets:
-        try:
-            parts = asset.Name.split('_')
-            if parts[-1].isdigit():
-                existing_indices.append(int(parts[-1]))
-        except (IndexError, ValueError):
-            continue
-
-    # 다음 인덱스 계산
-    next_index = max(existing_indices) + 1 if existing_indices else 1
-    return f"{base_name}_{next_index}"
-
-
-@bp.get("/<person_id>/ci/<int:asset_id>/edit")
-@login_required
-def edit_ci_form(person_id: str, asset_id: int):
-    """보안장비 수정 폼 로드"""
-    item = db.session.get(AST_Computer_System, asset_id)
-    if not item or item.Person_ID != person_id:
-        return {"ok": False, "message": "보안장비를 찾을 수 없습니다."}, 404
-
-    return {
-        "ok": True,
-        "data": {
-            "asset_id": item.Asset_ID,
-            "name": item.Name,
-            "category": item.Category,
-            "type": item.Type,
-            "item": item.Item,
-            "model_number": item.Model_Number,
-            "version_number": item.Version_Number,
-            "manufacturer_name": item.Manufacturer_Name,
-            "serial_number": item.Serial_Number,
-            "description": item.Description,
-            "service_url": item.Service_URL__c,
-            "lifecycle_status": item.AssetLifecycleStatus,
-            "supported": item.Supported,
-            "c_backup": item.C_backup,
-            "c_cycle": item.C_cycle,
-            "cfg_note": item.C_note,
-            "ci_note": item.Short_Description,
-            "ip_info": item.IP_Address,
-            "region": item.Region,
-            "idc_site": item.IDC_Site,
-            "maintenance_company": item.Maintenance_Company,
-            "operation_company": item.Operation_Company,
-            "operation_mode": item.Operation_Mode,
-            "product_name": item.Product_Name,
-            "supplier": item.Supplier,
-            "owner": item.Owner,
-            "installation_date": item.InstallationDate.isoformat() if item.InstallationDate else "",
-            "disposal_date": item.Disposal_Date.isoformat() if item.Disposal_Date else "",
-            "license_expiry": item.License_Expiry_Date.isoformat() if item.License_Expiry_Date else "",
-        }
-    }
-
-
-@bp.post("/<person_id>/ci/<int:asset_id>/edit")
-@login_required
-def update_ci(person_id: str, asset_id: int):
-    """보안장비 수정"""
-    item = db.session.get(AST_Computer_System, asset_id)
-    if not item or item.Person_ID != person_id:
-        flash("보안장비를 찾을 수 없습니다.", "warning")
-        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-assets"))
-
-    # [수정] CI 이름(장비 식별명) 업데이트 추가
-    item.Name = request.form.get('ci_name')
-
-    item.Category = request.form.get('category')
-    item.Type = request.form.get('type')
-    item.Item = request.form.get('item')
-    item.Model_Number = request.form.get('model_number')
-    item.Version_Number = request.form.get('version_number')
-    item.Manufacturer_Name = request.form.get('manufacturer_name')
-    item.Serial_Number = request.form.get('serial_number')
-    item.Description = request.form.get('description')
-    item.Service_URL__c = request.form.get('service_url')
-    item.AssetLifecycleStatus = int(request.form.get('lifecycle_status', 3))
-    item.Supported = int(request.form.get('supported', 0))
-    item.C_backup = int(request.form.get('c_backup', 0))
-    item.C_cycle = int(request.form.get('c_cycle')) if request.form.get('c_cycle') else None
-    item.C_note = request.form.get('cfg_note')
-    item.Short_Description = request.form.get('ci_note')
-    item.IP_Address = request.form.get('ip_info')
-    item.Region = request.form.get('region')
-    item.IDC_Site = request.form.get('idc_site')
-    item.Maintenance_Company = int(request.form.get('maintenance_company', 0))
-    item.Operation_Company = int(request.form.get('operation_company', 0))
-    item.Operation_Mode = int(request.form.get('operation_mode', 0))
-    item.Product_Name = request.form.get('product_name')
-    item.Supplier = request.form.get('supplier')
-    item.Owner = request.form.get('owner')
-    item.Update_Date = datetime.now()
-
-    date_fields = {
-        'installation_date': 'InstallationDate',
-        'disposal_date': 'Disposal_Date',
-        'license_expiry': 'License_Expiry_Date'
-    }
-    for field, attr in date_fields.items():
-        date_str = request.form.get(field)
-        if date_str:
-            try:
-                setattr(item, attr, datetime.strptime(date_str, '%Y-%m-%d').date())
-            except ValueError:
-                pass
-        else:
-            # 날짜를 지우고 싶을 경우를 대비해 None 처리 (선택사항)
-            setattr(item, attr, None)
-
-    db.session.commit()
-    flash("보안장비가 수정되었습니다.", "success")
-    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-assets"))
 
 
 # [1] 서버 추가 (일괄 등록 - JSON 반환)
@@ -798,46 +520,6 @@ def edit_contact_form(person_id: str, contact_id: int):
     }
 
 
-@bp.get("/<person_id>/contracts/<int:contract_id>/edit")
-@login_required
-def edit_contract_form(person_id: str, contract_id: int):
-    """계약 수정 폼 로드"""
-    item = db.session.get(Contract, contract_id)
-    if not item or item.Person_ID != person_id:
-        return {"ok": False, "message": "계약을 찾을 수 없습니다."}, 404
-
-    return {
-        "ok": True,
-        "data": {
-            "contract_id": item.Contract_ID,
-            "contract_name": item.Contract_Name,
-            "contract_amount": item.Contract_Amount,
-            "currency": item.Currency,
-            "contract_start_date": item.Contract_Start_Date.isoformat() if item.Contract_Start_Date else "",
-            "contract_end_date": item.Contract_End_Date.isoformat() if item.Contract_End_Date else "",
-            "contract_notes": item.Contract_Notes,
-        }
-    }
-
-
-@bp.post("/<person_id>/contracts/<int:contract_id>/edit")
-@login_required
-def update_contract(person_id: str, contract_id: int):
-    """계약 수정"""
-    item = db.session.get(Contract, contract_id)
-    if not item or item.Person_ID != person_id:
-        flash("계약을 찾을 수 없습니다.", "warning")
-        return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-contracts"))
-
-    item.Contract_Name = request.form.get('contract_name')
-    item.Contract_Amount = request.form.get('contract_amount')
-    item.Currency = request.form.get('currency')
-    item.Contract_Start_Date = _parse_date(request.form.get('contract_start_date'))
-    item.Contract_End_Date = _parse_date(request.form.get('contract_end_date'))
-    item.Contract_Notes = request.form.get('contract_notes')
-    db.session.commit()
-    flash("계약이 수정되었습니다.", "success")
-    return redirect(url_for("customers.detail", person_id=person_id, _anchor="tab-contracts"))
 
 
 # [1] 작업 등록 (디버깅 강화 및 안전장치 추가)

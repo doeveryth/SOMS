@@ -46,6 +46,7 @@ class CTMPeople(db.Model):
     Backup_Type: Mapped[str | None] = mapped_column("Backup_Type", Text, quote=True)
     Backup_Period: Mapped[str | None] = mapped_column("Backup_Period", Text, quote=True)
     Backup_Path: Mapped[str | None] = mapped_column("Backup_Path", Text, quote=True)
+    Backup_Vendor: Mapped[str | None] = mapped_column("Backup_Vendor", Text, quote=True)
 
     Vaccine__c: Mapped[str | None] = mapped_column("Vaccine__c", Text, quote=True)
     ShellMonitor__c: Mapped[str | None] = mapped_column("ShellMonitor__c", Text, quote=True)

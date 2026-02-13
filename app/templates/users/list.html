@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}사용자 관리 · SOMS{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <div class="container-fluid">
+
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">사용자 계정 관리</h4>
+                <div class="text-muted small">시스템 접속 권한 및 사용자 정보 관리</div>
+            </div>
+            <button type="button" class="btn btn-primary px-4 fw-bold shadow-sm" onclick="openUserRegisterModal()">
+                <i class="bi bi-person-plus-fill me-1"></i> 계정 생성
+            </button>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body bg-light rounded-3 p-3">
+                <form class="row g-2 align-items-end" method="get" action="{{ url_for('users.list_users') }}">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary mb-1">검색어</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" class="form-control border-start-0 ps-0" name="q" value="{{ q or '' }}" placeholder="이름, ID, 부서명">
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-secondary fw-bold px-4" type="submit">조회</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="width: 100%; min-width: 800px;">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4 py-3 text-secondary fw-bold" style="width: 5%;">No</th>
+                                <th class="py-3 text-secondary fw-bold" style="width: 15%;">사용자 ID</th>
+                                <th class="py-3 text-secondary fw-bold" style="width: 15%;">이름</th>
+                                <th class="py-3 text-secondary fw-bold" style="width: 15%;">부서</th>
+                                <th class="py-3 text-secondary fw-bold" style="width: 20%;">이메일</th>
+                                <th class="py-3 text-secondary fw-bold" style="width: 10%;">권한</th>
+                                <th class="pe-4 py-3 text-secondary fw-bold text-end" style="width: 10%;">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 0.9rem;">
+                            {% for u in users %}
+                            <tr>
+                                <td class="ps-4 text-muted small">{{ loop.index }}</td>
+                                <td><span class="fw-bold text-primary">{{ u.user_id }}</span></td>
+                                <td class="fw-bold text-dark">{{ u.user_name }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ u.department or '-' }}</span></td>
+                                <td><span class="text-muted small">{{ u.email or '-' }}</span></td>
+                                <td>
+                                    {% if u.role == 'Admin' %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2">관리자</span>
+                                    {% else %}
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2">사용자</span>
+                                    {% endif %}
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        <button type="button" class="btn btn-outline-secondary btn-square shadow-sm"
+                                                onclick="openUserEditModal(this)"
+                                                data-id="{{ u.user_id }}"
+                                                data-name="{{ u.user_name }}"
+                                                data-dept="{{ u.department or '' }}"
+                                                data-email="{{ u.email or '' }}"
+                                                data-role="{{ u.role }}">
+                                            <i class="bi bi-pencil-fill" style="font-size: 0.8rem;"></i>
+                                        </button>
+
+                                        {% if u.user_id != current_user.user_id %}
+                                        <form method="post" action="{{ url_for('users.delete_user', user_id=u.user_id) }}" onsubmit="return confirm('정말 삭제하시겠습니까?');" style="display:inline;">
+                                            <button type="submit" class="btn btn-outline-danger btn-square shadow-sm">
+                                                <i class="bi bi-trash-fill" style="font-size: 0.8rem;"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">등록된 사용자가 없습니다.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content" method="post" action="{{ url_for('users.list_users') }}">
+            <input type="hidden" name="target_id" id="modal_target_id">
+
+            <div class="modal-header bg-white border-bottom-0 py-3">
+                <h5 class="modal-title fw-bold text-primary" id="userModalTitle">
+                    <i class="bi bi-person-plus-fill me-2"></i>사용자 등록
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body bg-light p-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary">사용자 ID <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="user_id" id="modal_user_id" required>
+                                <div class="form-text small text-muted" id="id_help_text">로그인에 사용할 ID입니다. (수정 불가)</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary">비밀번호</label>
+                                <input type="password" class="form-control" name="password" id="modal_password" placeholder="비워두면 초기비번(new1234!)으로 설정됨">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">이름 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="user_name" id="modal_user_name" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-secondary">부서</label>
+                                <input type="text" class="form-control" name="department" id="modal_department">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary">이메일</label>
+                                <input type="email" class="form-control" name="email" id="modal_email">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-bold small text-secondary">권한</label>
+                                <select class="form-select" name="role" id="modal_role">
+                                    <option value="User">일반 사용자 (User)</option>
+                                    <option value="Admin">관리자 (Admin)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white border-top-0 py-3">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">저장하기</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+</script>
+{% endblock %}

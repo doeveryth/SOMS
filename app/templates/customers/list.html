@@ -3,280 +3,414 @@
 
 {% block content %}
 <div class="py-4">
-  <div class="container-fluid">
+    <div class="container-fluid">
 
-    <div class="d-flex align-items-center justify-content-between mb-4">
-      <div>
-        <h4 class="fw-bold mb-1">고객 조회</h4>
-        <div class="text-muted">전체 고객 목록 관리 및 신규 등록</div>
-      </div>
-      <button class="btn btn-primary px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#customerCreateModal">
-        <i class="bi bi-plus-lg me-1"></i> 고객 등록
-      </button>
-    </div>
-
-    <div class="card border-0 shadow-sm mb-4">
-      <div class="card-body p-4">
-        <form method="get" action="{{ url_for('customers.list_customers') }}">
-          <div class="row g-2 align-items-end">
-
-            <div class="col">
-              <label class="form-label fw-bold text-secondary small">검색어</label>
-              <div class="input-group">
-                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" class="form-control border-start-0 ps-0" name="q" value="{{ q or '' }}"
-                       placeholder="고객명, 사이트명, 서비스 번호, DC, 서비스 유형...">
-              </div>
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h4 class="fw-bold mb-1">고객 조회</h4>
+                <div class="text-muted">전체 고객 목록 관리 및 신규 등록</div>
             </div>
-
-            <div class="col-md-2">
-              <label class="form-label fw-bold text-secondary small">서비스 상태</label>
-              <select class="form-select" name="status">
-                <option value="">전체 상태</option>
-                <option value="1" {% if status == '1' %}selected{% endif %}>사용중</option>
-                <option value="2" {% if status == '2' %}selected{% endif %}>개통중</option>
-                <option value="3" {% if status == '3' %}selected{% endif %}>이용정지</option>
-                <option value="4" {% if status == '4' %}selected{% endif %}>일시중단</option>
-                <option value="5" {% if status == '5' %}selected{% endif %}>해지</option>
-              </select>
-            </div>
-
-            <div class="col-md-2">
-              <label class="form-label fw-bold text-secondary small">민감도</label>
-              <select class="form-select" name="sensitivity">
-                <option value="">전체 등급</option>
-                <option value="1" {% if sensitivity == '1' %}selected{% endif %}>표준</option>
-                <option value="0" {% if sensitivity == '0' %}selected{% endif %}>민감</option>
-                <option value="2" {% if sensitivity == '2' %}selected{% endif %}>VIP</option>
-              </select>
-            </div>
-
-            <div class="col-auto">
-              <button type="submit" class="btn btn-dark fw-bold px-4">
-                검색
-              </button>
-            </div>
-
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="card border-0 shadow-sm">
-      <div class="card-body p-0">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0" style="min-width: 1000px;">
-            <thead class="table-light">
-              <tr>
-                <th class="ps-4 py-3 text-secondary fw-bold" style="width: 8%;">상태</th>
-                <th class="py-3 text-secondary fw-bold" style="width: 20%;">고객 정보</th>
-                <th class="py-3 text-secondary fw-bold" style="width: 12%;">서비스 유형</th>
-                <th class="py-3 text-secondary fw-bold" style="width: 10%;">민감도</th>
-                <th class="py-3 text-secondary fw-bold" style="width: 15%;">DC (데이터센터)</th>
-                <th class="py-3 text-secondary fw-bold" style="width: 20%;">서비스 번호</th>
-                <th class="pe-4 py-3 text-secondary fw-bold text-end" style="width: 15%;">관리</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for p in people %}
-              <tr onclick="location.href='{{ url_for('customers.detail', person_id=p.Person_ID) }}';" style="cursor: pointer;">
-                <td class="ps-4">
-                  {% if p.Service_Status|string == '1' %}
-                    <span class="badge bg-success rounded-pill bg-opacity-10 text-success px-2">사용중</span>
-                  {% elif p.Service_Status|string == '2' %}
-                    <span class="badge bg-info rounded-pill bg-opacity-10 text-info px-2">개통중</span>
-                  {% elif p.Service_Status|string == '3' %}
-                    <span class="badge bg-danger rounded-pill bg-opacity-10 text-danger px-2">이용정지</span>
-                  {% elif p.Service_Status|string == '4' %}
-                    <span class="badge bg-warning rounded-pill bg-opacity-10 text-warning px-2">일시중단</span>
-                  {% elif p.Service_Status|string == '5' %}
-                    <span class="badge bg-secondary rounded-pill bg-opacity-10 text-secondary px-2">해지</span>
-                  {% else %}
-                    <span class="badge bg-light text-dark border px-2">{{ p.Service_Status or '-' }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <div class="fw-bold text-dark fs-6 mb-1">{{ p.Company }}</div>
-                  {% if p.Last_Name %}
-                    <div class="small text-muted"><i class="bi bi-geo-alt-fill me-1 small"></i>{{ p.Last_Name }}</div>
-                  {% else %}
-                    <div class="small text-muted opacity-50">-</div>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if p.Service_Type == 'CO_PRE' %}
-                    <span class="badge border border-primary text-primary rounded-pill px-2">CO_PRE</span>
-                  {% elif p.Service_Type == 'CO_BA' %}
-                    <span class="badge border border-info text-info rounded-pill px-2">CO_BA</span>
-                  {% elif p.Service_Type == 'BK(only)' %}
-                    <span class="badge border border-warning text-warning rounded-pill px-2">BK(only)</span>
-                  {% else %}
-                    <span class="small text-muted">{{ p.Service_Type or '-' }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if p.Client_Sensitivity|string == '0' %}
-                    <span class="badge rounded-pill bg-danger">민감</span>
-                  {% elif p.Client_Sensitivity|string == '2' %}
-                    <span class="badge rounded-pill bg-warning text-dark">VIP</span>
-                  {% else %}
-                    <span class="badge rounded-pill bg-white text-secondary border">표준</span>
-                  {% endif %}
-                </td>
-                <td><div class="text-dark fw-bold fs-6">{{ p.IDC or '-' }}</div></td>
-                <td><div class="small text-secondary fw-bold">{{ p.Service_Number or '-' }}</div></td>
-                <td class="pe-4 text-end">
-                  <a class="btn btn-sm btn-outline-primary fw-bold" href="{{ url_for('customers.detail', person_id=p.Person_ID) }}">
-                    상세보기 <i class="bi bi-chevron-right ms-1" style="font-size: 0.75rem;"></i>
-                  </a>
-                </td>
-              </tr>
-              {% endfor %}
-              {% if not people %}
-              <tr>
-                <td colspan="7" class="text-center py-5">
-                  <div class="text-muted"><i class="bi bi-inbox fs-1 d-block mb-3 opacity-25"></i>조건에 맞는 데이터가 없습니다.</div>
-                </td>
-              </tr>
-              {% endif %}
-            </tbody>
-          </table>
+            <button class="btn btn-primary px-4 fw-bold shadow-sm" data-bs-toggle="modal"
+                    data-bs-target="#customerCreateModal">
+                <i class="bi bi-plus-lg me-1"></i> 신규 고객 등록
+            </button>
         </div>
-      </div>
-    </div>
 
-  </div>
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100 border-start border-primary border-4">
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold mb-1">전체 고객사</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3 class="fw-bold text-dark mb-0">{{ pagination.total }}<span class="fs-6 ms-1 text-muted">개사</span>
+                            </h3>
+                            <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-circle">
+                                <i class="bi bi-building fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100 border-start border-warning border-4">
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold mb-1">VIP / 민감 고객</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3 class="fw-bold text-dark mb-0">{{ count_vip }}<span
+                                    class="fs-6 ms-1 text-muted">곳</span></h3>
+                            <div class="bg-warning bg-opacity-10 text-warning p-2 rounded-circle">
+                                <i class="bi bi-star-fill fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100 border-start border-success border-4">
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold mb-1">레포트 발송 대상</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3 class="fw-bold text-dark mb-0">{{ count_report }}<span
+                                    class="fs-6 ms-1 text-muted">곳</span></h3>
+                            <div class="bg-success bg-opacity-10 text-success p-2 rounded-circle">
+                                <i class="bi bi-file-earmark-bar-graph fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100 border-start border-info border-4">
+                    <div class="card-body">
+                        <div class="text-secondary small fw-bold mb-1">신규 등록 (이번달)</div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <h3 class="fw-bold text-dark mb-0">{{ count_new }}<span
+                                    class="fs-6 ms-1 text-muted">곳</span></h3>
+                            <div class="bg-info bg-opacity-10 text-info p-2 rounded-circle">
+                                <i class="bi bi-person-plus-fill fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-4">
+                <form method="get" action="{{ url_for('customers.list_customers') }}">
+                    <div class="row g-2 align-items-end">
+
+                        <div class="col">
+                            <label class="form-label fw-bold text-secondary small">검색어</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i
+                                        class="bi bi-search text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" name="q"
+                                       value="{{ q or '' }}"
+                                       placeholder="고객명, 영업담당자, Rack 위치...">
+                            </div>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold text-secondary small">DC (데이터센터)</label>
+                            <select class="form-select" name="idc">
+                                <option value="">전체 위치</option>
+                                <option value="목동1" {% if idc==
+                                '목동1' %}selected{% endif %}>목동1</option>
+                                <option value="목동2" {% if idc==
+                                '목동2' %}selected{% endif %}>목동2</option>
+                                <option value="강남" {% if idc==
+                                '강남' %}selected{% endif %}>강남</option>
+                                <option value="여의도" {% if idc==
+                                '여의도' %}selected{% endif %}>여의도</option>
+                                <option value="용산" {% if idc==
+                                '용산' %}selected{% endif %}>용산</option>
+                                <option value="분당" {% if idc==
+                                '분당' %}selected{% endif %}>분당</option>
+                                <option value="천안" {% if idc==
+                                '천안' %}selected{% endif %}>천안</option>
+                                <option value="송정" {% if idc==
+                                '송정' %}selected{% endif %}>송정</option>
+                                <option value="대전" {% if idc==
+                                '대전' %}selected{% endif %}>대전</option>
+                                <option value="대구" {% if idc==
+                                '대구' %}selected{% endif %}>대구</option>
+                                <option value="부산" {% if idc==
+                                '부산' %}selected{% endif %}>부산</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold text-secondary small">민감도</label>
+                            <select class="form-select" name="sensitivity">
+                                <option value="">전체 등급</option>
+                                <option value="1" {% if sensitivity==
+                                '1' %}selected{% endif %}>표준</option>
+                                <option value="0" {% if sensitivity==
+                                '0' %}selected{% endif %}>민감</option>
+                                <option value="2" {% if sensitivity==
+                                '2' %}selected{% endif %}>VIP</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold text-secondary small">정기 레포트</label>
+                            <select class="form-select" name="report">
+                                <option value="">전체</option>
+                                <option value="0" {% if report==
+                                '0' %}selected{% endif %}>발송 (Y)</option>
+                                <option value="1" {% if report==
+                                '1' %}selected{% endif %}>미발송 (N)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-dark fw-bold px-4">검색</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" style="min-width: 1000px;">
+                        <thead class="bg-light border-top border-bottom">
+                        <tr>
+                            <th class="ps-4 py-3 text-secondary fw-bold text-uppercase small" style="width: 30%;">고객 정보
+                                (회사명)
+                            </th>
+                            <th class="py-3 text-secondary fw-bold text-uppercase small" style="width: 20%;">위치 정보 (DC /
+                                Rack)
+                            </th>
+                            <th class="py-3 text-secondary fw-bold text-center text-uppercase small"
+                                style="width: 10%;">민감도
+                            </th>
+                            <th class="py-3 text-secondary fw-bold text-center text-uppercase small"
+                                style="width: 10%;">정기 레포트
+                            </th>
+                            <th class="py-3 text-secondary fw-bold text-uppercase small" style="width: 15%;">영업 담당자</th>
+                            <th class="pe-4 py-3 text-secondary fw-bold text-end text-uppercase small"
+                                style="width: 15%;">관리
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody class="border-top-0">
+                        {% for p in pagination.items %}
+                        <tr class="bg-white"
+                            onclick="location.href='{{ url_for('customers.detail', person_id=p.Person_ID) }}';"
+                            style="cursor: pointer; transition: all 0.2s ease;">
+                            <td class="ps-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-primary bg-opacity-10 text-primary me-3 rounded-3 d-flex align-items-center justify-content-center shadow-sm"
+                                         style="width: 48px; height: 48px;">
+                                        <i class="bi bi-building fs-5"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bolder text-dark fs-6 mb-1">{{ p.Company }}</div>
+                                        <div class="small text-muted d-flex align-items-center">
+                                            <i class="bi bi-briefcase me-1 opacity-50"></i>
+                                            {{ p.Business_Type or '-' }} {% if p.Business_Detail %}<span
+                                                class="mx-1">·</span> {{ p.Business_Detail }}{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="py-3">
+                                <div class="d-flex flex-column">
+                    <span class="fw-bold text-dark mb-1">
+                        <i class="bi bi-geo-alt-fill text-danger opacity-75 me-1"></i>{{ p.IDC or '미지정' }}
+                    </span>
+                                    <span class="small text-muted font-monospace">
+                        <i class="bi bi-hdd-rack me-1 opacity-50"></i>Rack: {{ p.Rack_Location or '-' }}
+                    </span>
+                                </div>
+                            </td>
+
+                            <td class="text-center py-3">
+                                {% if p.Client_Sensitivity|string == '0' %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-2">민감</span>
+                                {% elif p.Client_Sensitivity|string == '2' %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill px-3 py-2">VIP</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-3 py-2">표준</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="text-center py-3">
+                                {% if p.Report_YN == '0' or p.Report_YN == 'Y' %}
+                                <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1"><i
+                                        class="bi bi-check-lg me-1"></i>발송</span>
+                                {% else %}
+                                <span class="badge bg-light text-muted border rounded-pill px-2 py-1"><i
+                                        class="bi bi-dash me-1"></i>미발송</span>
+                                {% endif %}
+                            </td>
+
+                            <td class="py-3">
+                                <div class="d-flex align-items-center text-dark">
+                                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2"
+                                         style="width: 32px; height: 32px;">
+                                        <i class="bi bi-person-fill text-secondary"></i>
+                                    </div>
+                                    <span class="fw-medium">{{ p.Sales_Manager or '-' }}</span>
+                                </div>
+                            </td>
+
+                            <td class="pe-4 text-end py-3">
+                                <a class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3 shadow-sm"
+                                   href="{{ url_for('customers.detail', person_id=p.Person_ID) }}">
+                                    상세보기 <i class="bi bi-chevron-right ms-1 small"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 my-5">
+                                <div class="text-muted mb-2"><i class="bi bi-inbox-fill fs-1 opacity-25"></i></div>
+                                <div class="text-muted fw-bold">조건에 맞는 데이터가 없습니다.</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if pagination.total > 0 %}
+                <div class="d-flex justify-content-center py-4 border-top">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                <a class="page-link"
+                                   href="{{ url_for('customers.list_customers', page=pagination.prev_num, q=q, idc=idc, sensitivity=sensitivity, report=report) }}"
+                                   aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+
+                            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2,
+                            right_current=2) %}
+                            {% if page_num %}
+                            {% if page_num != pagination.page %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="{{ url_for('customers.list_customers', page=page_num, q=q, idc=idc, sensitivity=sensitivity, report=report) }}">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                            {% else %}
+                            <li class="page-item active"><span class="page-link">{{ page_num }}</span></li>
+                            {% endif %}
+                            {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+                            {% endfor %}
+
+                            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                <a class="page-link"
+                                   href="{{ url_for('customers.list_customers', page=pagination.next_num, q=q, idc=idc, sensitivity=sensitivity, report=report) }}"
+                                   aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="customerCreateModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <form class="modal-content" method="post" action="{{ url_for('customers.list_customers') }}">
-
-      <div class="modal-header bg-white border-bottom-0 py-3">
-        <h5 class="modal-title fw-bold text-primary">
-          <i class="bi bi-person-plus-fill me-2"></i>신규 고객 등록
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
-      </div>
-
-      <div class="modal-body bg-light p-4">
-        <div class="card border-0 shadow-sm">
-          <div class="card-body">
-            <div class="row g-3">
-              <div class="col-12 border-bottom pb-2 mb-2">
-                 <h6 class="text-primary fw-bold mb-0"><i class="bi bi-info-circle me-1"></i>기본 정보</h6>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input type="text" class="form-control" id="Company" name="Company" placeholder="고객명" required>
-                  <label for="Company">고객명 (Company) <span class="text-danger">*</span></label>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input type="text" class="form-control" id="Last_Name" name="Last_Name" placeholder="사이트명">
-                  <label for="Last_Name">사이트명 (Site Name)</label>
-                </div>
-              </div>
-              <div class="col-12 border-bottom pb-2 mb-2 mt-4">
-                 <h6 class="text-primary fw-bold mb-0"><i class="bi bi-hdd-network me-1"></i>서비스 설정</h6>
-              </div>
-              <div class="col-md-4">
-                <div class="form-floating">
-                  <select class="form-select" id="Service_Type" name="Service_Type">
-                    <option value="">-- 선택 --</option>
-                    <option value="CO_PRE">CO_PRE</option>
-                    <option value="CO_BA">CO_BA</option>
-                    <option value="BK(only)">BK(only)</option>
-                  </select>
-                  <label for="Service_Type">서비스 유형</label>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-floating">
-                  <select class="form-select" id="Service_Status" name="Service_Status">
-                    <option value="1" selected>사용중</option>
-                    <option value="2">개통중</option>
-                    <option value="3">이용정지</option>
-                    <option value="4">일시이용중단</option>
-                    <option value="5">해지</option>
-                  </select>
-                  <label for="Service_Status">서비스 상태</label>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-floating">
-                  <input type="text" class="form-control" name="Service_Number" placeholder="서비스번호">
-                  <label>서비스 번호</label>
-                </div>
-              </div>
-              <div class="col-12 border-bottom pb-2 mb-2 mt-4">
-                 <h6 class="text-primary fw-bold mb-0"><i class="bi bi-calendar-range me-1"></i>계약 및 위치</h6>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input type="date" class="form-control" name="Open_Date" placeholder="개통일">
-                  <label>개통일</label>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input type="date" class="form-control" name="Terminate_Date" placeholder="해지일">
-                  <label>해지일</label>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input type="text" class="form-control" name="IDC" placeholder="DC">
-                  <label>DC (데이터센터)</label>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <input type="text" class="form-control" name="Rack_Location" placeholder="Rack">
-                  <label>Rack 위치</label>
-                </div>
-              </div>
-              <div class="col-12 border-bottom pb-2 mb-2 mt-4">
-                 <h6 class="text-primary fw-bold mb-0"><i class="bi bi-gear me-1"></i>관리 정보</h6>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <select class="form-select" name="Client_Sensitivity">
-                    <option value="1" selected>표준</option>
-                    <option value="0">민감</option>
-                    <option value="2">VIP</option>
-                  </select>
-                  <label>고객 민감도</label>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="form-floating">
-                  <select class="form-select" name="Report_YN">
-                    <option value="0" selected>발송 (Y)</option>
-                    <option value="1">미발송 (N)</option>
-                  </select>
-                  <label>정기 레포트 발송</label>
-                </div>
-              </div>
-              <div class="col-12">
-                <div class="form-floating">
-                  <input type="text" class="form-control" name="Sales_Manager" placeholder="영업담당">
-                  <label>영업 담당자</label>
-                </div>
-              </div>
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <form class="modal-content" method="post" action="{{ url_for('customers.list_customers') }}">
+            <div class="modal-header bg-white border-bottom py-3">
+                <h5 class="modal-title fw-bold text-primary">
+                    <i class="bi bi-person-plus-fill me-2"></i>신규 고객 등록
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="닫기"></button>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <div class="modal-footer bg-white border-top-0 py-3">
-        <div class="small text-muted me-auto"><i class="bi bi-info-circle me-1"></i>상세 정보는 등록 후 상세 페이지에서 수정 가능합니다.</div>
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
-        <button type="submit" class="btn btn-primary px-4 fw-bold">등록하기</button>
-      </div>
+            <div class="modal-body bg-light p-4">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h6 class="text-secondary fw-bold mb-3 small text-uppercase"><i class="bi bi-building me-1"></i>회사
+                            기본 정보</h6>
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-bold small">고객사명 (Company) <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="Company" placeholder="예: (주)한국정보통신"
+                                       required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">업종 대분류</label>
+                                <select class="form-select" name="Business_Type">
+                                    <option value="">선택하세요</option>
+                                    <option value="금융">금융</option>
+                                    <option value="공공">공공</option>
+                                    <option value="기업">기업</option>
+                                    <option value="교육">교육</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">업종 상세</label>
+                                <input type="text" class="form-control" name="Business_Detail"
+                                       placeholder="예: 핀테크, 쇼핑몰">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    </form>
-  </div>
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h6 class="text-secondary fw-bold mb-3 small text-uppercase"><i class="bi bi-geo-alt me-1"></i>위치
+                            정보</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">DC (데이터센터)</label>
+                                <select class="form-select" name="IDC">
+                                    <option value="목동1">목동1</option>
+                                    <option value="목동2">목동2</option>
+                                    <option value="강남">강남</option>
+                                    <option value="여의도">여의도</option>
+                                    <option value="용산">용산</option>
+                                    <option value="분당">분당</option>
+                                    <option value="천안">천안</option>
+                                    <option value="송정">송정</option>
+                                    <option value="대전">대전</option>
+                                    <option value="대구">대구</option>
+                                    <option value="부산">부산</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">Rack 위치</label>
+                                <input type="text" class="form-control" name="Rack_Location" placeholder="예: 3F-A-01">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h6 class="text-secondary fw-bold mb-3 small text-uppercase"><i class="bi bi-gear me-1"></i>관리
+                            설정</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">고객 민감도</label>
+                                <select class="form-select" name="Client_Sensitivity">
+                                    <option value="1">표준</option>
+                                    <option value="0">민감</option>
+                                    <option value="2">VIP</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small">정기 레포트 발송</label>
+                                <select class="form-select" name="Report_YN">
+                                    <option value="0">발송 (Y)</option>
+                                    <option value="1">미발송 (N)</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold small">영업 담당자</label>
+                                <input type="text" class="form-control" name="Sales_Manager" placeholder="담당자 이름">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white border-top-0 py-3">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">취소</button>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">등록하기</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

@@ -6,7 +6,7 @@
  * - 작업 이력(Work) 관리 (고객 상세 페이지 내)
  */
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     // -------------------------------------------------------------
     // [핵심] 페이지 로드 시 URL 해시(#tab-...)에 따라 탭 활성화
     // -------------------------------------------------------------
@@ -36,10 +36,20 @@ document.addEventListener("DOMContentLoaded", function() {
     const assetEditModal = document.getElementById('assetEditModal');
     if (assetEditModal && typeof $ !== 'undefined' && $.fn.select2) {
         assetEditModal.addEventListener('shown.bs.modal', function () {
-            $('#edit_type').select2({ theme: 'bootstrap-5', dropdownParent: $('#assetEditModal'), width: '100%' });
-            $('#edit_item').select2({ theme: 'bootstrap-5', dropdownParent: $('#assetEditModal'), width: '100%', placeholder: '선택 (선택사항)', allowClear: true });
-            $('#edit_supplier').select2({ theme: 'bootstrap-5', dropdownParent: $('#assetEditModal'), width: '100%' });
-            $('#edit_maintenance_company').select2({ theme: 'bootstrap-5', dropdownParent: $('#assetEditModal'), width: '100%' });
+            $('#edit_type').select2({theme: 'bootstrap-5', dropdownParent: $('#assetEditModal'), width: '100%'});
+            $('#edit_item').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#assetEditModal'),
+                width: '100%',
+                placeholder: '선택 (선택사항)',
+                allowClear: true
+            });
+            $('#edit_supplier').select2({theme: 'bootstrap-5', dropdownParent: $('#assetEditModal'), width: '100%'});
+            $('#edit_maintenance_company').select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $('#assetEditModal'),
+                width: '100%'
+            });
         });
     }
 });
@@ -85,7 +95,7 @@ async function updateCustomerInfo() {
 }
 
 // [추가] 페이지 로드 시 탭 유지 기능 (대시보드 포함)
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     // URL 해시값(#tab-...)을 읽어서 해당 탭을 활성화
     var hash = window.location.hash;
     if (hash) {
@@ -98,260 +108,195 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
-
 // ==============================================================
 // [2] 보안장비 (Assets)
 // ==============================================================
+let custPageRow = null;
 
-
-function openAssetEditModal(btn) {
-    // 1. 버튼의 data 속성에서 값 가져오기
-    const d = btn.dataset;
-
-    // 2. 모달의 입력 필드에 값 할당
-    document.getElementById('edit_ci_name').value = d.name || '';
-    document.getElementById('edit_supplier').value = d.supplier || '';
-    document.getElementById('edit_category').value = d.category || '보안장비';
-    document.getElementById('edit_type').value = d.type || '';
-    document.getElementById('edit_item').value = d.item || '';
-    document.getElementById('edit_product_name').value = d.product || '';
-    document.getElementById('edit_model_number').value = d.model || '';
-    document.getElementById('edit_manufacturer_name').value = d.manufacturer || '';
-
-    document.getElementById('edit_serial_number').value = d.serial || '';
-    document.getElementById('edit_ip_info').value = d.ip || '';
-    document.getElementById('edit_ci_note').value = d.note || '';
-
-    document.getElementById('edit_maintenance_company').value = d.maint || '11';
-    document.getElementById('edit_operation_company').value = d.opComp || '0';
-    document.getElementById('edit_operation_mode').value = d.opMode || '0';
-    document.getElementById('edit_idc_site').value = d.idc || '';
-
-    document.getElementById('edit_c_backup').value = d.backup || '0';
-    document.getElementById('edit_c_cycle').value = d.cycle || '2';
-    document.getElementById('edit_cfg_note').value = d.cnote || '';
-
-    document.getElementById('edit_lifecycle_status').value = d.status || '3';
-
-    // 날짜 필드 (값이 없으면 빈 문자열)
-    document.getElementById('edit_installation_date').value = d.install && d.install != 'None' ? d.install.split(' ')[0] : '';
-    document.getElementById('edit_license_expiry').value = d.license && d.license != 'None' ? d.license.split(' ')[0] : '';
-    document.getElementById('edit_disposal_date').value = d.disposal && d.disposal != 'None' ? d.disposal.split(' ')[0] : '';
-
-    document.getElementById('edit_description').value = d.desc || '';
-
-    // 3. Form Action 업데이트 (수정 URL 설정) - URL은 상황에 맞게 조정 필요
-    // 여기서는 asset_id를 경로에 포함시키는 방식 예시입니다.
-    const form = document.getElementById('assetEditForm');
-    // 예: /customers/P-1234/asset/update/1
-    form.action = "{{ url_for('customers.detail', person_id=people.Person_ID) }}".replace('/detail', '') + '/asset/update/' + d.id;
-
-    // 4. 모달 띄우기
-    new bootstrap.Modal(document.getElementById('assetEditModal')).show();
-}
-
-// 상세 조회 모달 열기
-function openAssetDetailModal(row) {
-    const d = row.dataset;
-
-    // --- 텍스트 변환 헬퍼 함수 ---
-    const getOpName = (val) => (val == '0' ? 'ICTIS' : (val == '1' ? '고객사' : '-'));
-    const getMaintName = (val) => {
-        if(val=='0') return 'ICTIS';
-        if(val=='11') return '고객사 유지보수';
-        if(val=='12') return '없음';
-        if(val=='13') return '윈스';
-        return val || '-';
-    };
-    // [수정] 영어 제거 (탐지/차단만 표시)
-    const getOpMode = (val) => {
-        if(val == '1') return '탐지';
-        if(val == '2') return '차단';
-        return '해당 없음';
-    };
-    const getBackupYN = (val) => (val == '0' ? 'YES' : 'NO');
-    const getBackupCycle = (val) => {
-        if(val == '0') return 'Daily';
-        if(val == '1') return 'Weekly';
-        if(val == '2') return 'Monthly';
-        return '-';
-    };
-    const getDate = (val) => (val && val != 'None' ? val.split(' ')[0] : '-');
-
-    // --- 값 할당 (View) ---
-
-    document.getElementById('view_name').innerText = d.name;
-    document.getElementById('view_full_category').innerText = `${d.category} > ${d.type}` + (d.item ? ` > ${d.item}` : '');
-
-    // [수정] 고객사 정보 (Jinja 오류 해결: dataset에서 가져옴)
-    const companyInfo = (d.company || '') + ' / ' + (d.site || '');
-    document.getElementById('view_customer_info').innerText = companyInfo;
-
-    document.getElementById('view_manufacturer').innerText = d.manufacturer || '-';
-    document.getElementById('view_product').innerText = d.product || '-';
-    document.getElementById('view_model').innerText = d.model || '-';
-    document.getElementById('view_serial').innerText = d.serial || '-';
-    document.getElementById('view_ip').innerText = d.ip || '-';
-
-    document.getElementById('view_maint').innerText = getMaintName(d.maint);
-    document.getElementById('view_op_comp').innerText = getOpName(d.opComp);
-    document.getElementById('view_op_mode').innerText = getOpMode(d.opMode);
-    document.getElementById('view_supplier').innerText = d.supplier || '-';
-    document.getElementById('view_idc').innerText = d.idc || '-';
-
-    document.getElementById('view_backup_yn').innerText = getBackupYN(d.backup);
-    document.getElementById('view_backup_cycle').innerText = getBackupCycle(d.cycle);
-    document.getElementById('view_backup_note').innerText = d.cnote || '-';
-
-    document.getElementById('view_install').innerText = getDate(d.install);
-    document.getElementById('view_license').innerText = getDate(d.license);
-    document.getElementById('view_disposal').innerText = getDate(d.disposal);
-
-    document.getElementById('view_ci_note').innerText = d.note || '-';
-    document.getElementById('view_desc').innerText = d.desc || '-';
-
-    document.getElementById('view_submitter').innerText = d.submitter || '-';
-    document.getElementById('view_updated').innerText = d.updated || '-';
-
-    // 상태 배지 스타일링
-    const statusEl = document.getElementById('view_status_badge');
-    const statusMap = {'3':'사용중', '0':'주문됨', '1':'입고됨', '11':'폐기'};
-
-    statusEl.className = 'badge rounded-pill px-3 py-2 me-2';
-    if(d.status == '3') statusEl.classList.add('bg-success');
-    else if(d.status == '0') statusEl.classList.add('bg-secondary');
-    else if(d.status == '1') statusEl.classList.add('bg-info', 'text-dark');
-    else if(d.status == '11') statusEl.classList.add('bg-danger');
-    else statusEl.classList.add('bg-dark');
-
-    statusEl.innerText = statusMap[d.status] || d.status;
-
-    // 수정 버튼 이벤트 연결
-    const goToEditHandler = function() {
-        bootstrap.Modal.getInstance(document.getElementById('assetDetailModal')).hide();
-        openAssetEditModalFromRow(row);
-    };
-
-    document.getElementById('btn_go_to_edit_top').onclick = goToEditHandler;
-    //document.getElementById('btn_go_to_edit_bottom').onclick = goToEditHandler;
-
-    new bootstrap.Modal(document.getElementById('assetDetailModal')).show();
-}
-
-// 수정 모달 열기 함수
-function openAssetEditModalFromRow(row) {
-    const d = row.dataset;
-
-    // 1. 일반 input 값 할당
-    document.getElementById('edit_ci_name').value = d.name || '';
-    document.getElementById('edit_category').value = d.category || '보안장비';
-
-    // 2. Select2 적용 필드는 jQuery로 값 변경 + trigger('change')
-    $('#edit_supplier').val(d.supplier || '').trigger('change');
-    $('#edit_type').val(d.type || '').trigger('change');
-    $('#edit_item').val(d.item || '').trigger('change');
-    $('#edit_maintenance_company').val(d.maint || '12').trigger('change'); // 기본값 12(없음)
-
-    // 3. 나머지 값 할당
-    document.getElementById('edit_product_name').value = d.product || '';
-    document.getElementById('edit_model_number').value = d.model || '';
-    document.getElementById('edit_manufacturer_name').value = d.manufacturer || '';
-    document.getElementById('edit_serial_number').value = d.serial || '';
-    document.getElementById('edit_ip_info').value = d.ip || '';
-    document.getElementById('edit_ci_note').value = d.note || '';
-    document.getElementById('edit_operation_company').value = d.opComp || '0';
-    document.getElementById('edit_operation_mode').value = d.opMode || '0';
-    document.getElementById('edit_idc_site').value = d.idc || '';
-    document.getElementById('edit_c_backup').value = d.backup || '0';
-    document.getElementById('edit_c_cycle').value = d.cycle || '2';
-    document.getElementById('edit_cfg_note').value = d.cnote || '';
-    document.getElementById('edit_lifecycle_status').value = d.status || '3';
-
-    // 날짜 처리
-    const parseDate = (val) => (val && val != 'None' ? val.split(' ')[0] : '');
-    document.getElementById('edit_installation_date').value = parseDate(d.install);
-    document.getElementById('edit_license_expiry').value = parseDate(d.license);
-    document.getElementById('edit_disposal_date').value = parseDate(d.disposal);
-    document.getElementById('edit_description').value = d.desc || '';
-
-    // [핵심 수정] Action URL 업데이트 (Jinja 제거 및 라우트 경로 일치시킴)
-    // Python Route: @bp.post("/<person_id>/ci/<int:asset_id>/edit")
-    const form = document.getElementById('assetEditForm');
-
-    // '/customers/' 경로는 블루프린트 설정에 따라 다를 수 있으나 보통 customers를 씁니다.
-    // 만약 URL이 다르다면 '/customers/' 부분을 실제 prefix로 바꿔주세요.
-    form.action = '/customers/' + d.personId + '/ci/' + d.id + '/edit';
-
-    // 모달 띄우기
-    new bootstrap.Modal(document.getElementById('assetEditModal')).show();
-}
-
-// 보안장비 수정 모달 열기
-async function editAsset(assetId, personId) {
-    const modal = new bootstrap.Modal(document.getElementById('assetEditModal'));
-    const form = document.getElementById('assetEditForm');
-    const body = document.getElementById('assetEditBody');
-
-    try {
-        const res = await fetch(`/customers/${personId}/ci/${assetId}/edit`);
-        const data = await res.json();
-
-        if (!data.ok) {
-            alert(data.message || '로드에 실패했습니다.');
-            return;
+    $(document).ready(function() {
+        if(window.location.hash === '#tab-assets') {
+            const triggerEl = document.querySelector('button[data-bs-target="#tab-assets"], a[href="#tab-assets"]');
+            if (triggerEl) {
+                const tab = new bootstrap.Tab(triggerEl);
+                tab.show();
+            }
         }
 
-        const d = data.data;
-        body.innerHTML = `
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">분류</label>
-          <input type="text" class="form-control" name="category" value="${d.category || ''}">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">유형</label>
-          <input type="text" class="form-control" name="type" value="${d.type || ''}">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">품목</label>
-          <input type="text" class="form-control" name="item" value="${d.item || ''}">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">모델명</label>
-          <input type="text" class="form-control" name="model_number" value="${d.model_number || ''}">
-        </div>
-        <div class="col-12">
-          <label class="form-label">설명</label>
-          <textarea class="form-control" name="description" rows="3">${d.description || ''}</textarea>
-        </div></div>
-    `;
-
-        form.action = `/customers/${personId}/ci/${assetId}/edit`;
-        modal.show();
-    } catch (err) {
-        alert('로드에 실패했습니다.');
-    }
-}
-//장비 삭제
-document.addEventListener('DOMContentLoaded', function() {
-    const deleteModal = document.getElementById('assetDeleteModal');
-    if (deleteModal) {
-        deleteModal.addEventListener('show.bs.modal', function(event) {
-            // 버튼에서 데이터 가져오기
-            const button = event.relatedTarget;
-            const deleteUrl = button.getAttribute('data-url');
-            const assetName = button.getAttribute('data-name');
-
-            // 모달 내부 텍스트 및 폼 액션 업데이트
-            const form = deleteModal.querySelector('#assetDeleteForm');
-            const nameDisplay = deleteModal.querySelector('#deleteAssetName');
-
-            form.action = deleteUrl;
-            nameDisplay.textContent = assetName;
+        window.initializeSelect2 = function() {};
+        $('.select2-cust').select2({
+            theme: 'bootstrap-5',
+            dropdownParent: $('#custAssetModal'),
+            width: '100%',
+            placeholder: "선택하세요"
         });
-    }
-});
+    });
 
+    // 1. 상세 보기
+    function openCustDetail(row) {
+        custPageRow = row;
+        const d = row.dataset;
+
+        document.getElementById('cust_view_name').innerText = d.name || '-';
+        document.getElementById('cust_view_customer').innerText = (d.company||'') + ' / ' + (d.site||'');
+
+        const st = d.status || '3';
+        const stMap = {'3':'사용중','0':'주문됨','1':'입고됨','11':'폐기'};
+        const stCls = {'3':'bg-success','0':'bg-secondary','1':'bg-info text-dark','11':'bg-danger'};
+        const bdg = document.getElementById('cust_view_status');
+        bdg.innerText = stMap[st] || st;
+        bdg.className = `badge rounded-pill px-3 py-2 ${stCls[st] || 'bg-secondary'}`;
+
+        document.getElementById('cust_view_ip').innerText = d.ip || '-';
+        document.getElementById('cust_view_serial').innerText = d.serial || '-';
+        document.getElementById('cust_view_category').innerText = (d.category||'') + (d.type ? ` > ${d.type}` : '');
+
+        document.getElementById('cust_view_maker').innerText = d.manufacturer || '-';
+        document.getElementById('cust_view_product').innerText = d.product || '-';
+        document.getElementById('cust_view_model').innerText = d.model || '-';
+
+        // Maintenance Mapping (Numeric -> Text)
+        const maintMap = {
+            '0':'ICTIS', '1':'에스에이정보기술', '2':'블루시큐어', '3':'유콘텍', '4':'유니포인트', '5':'엔큐리티',
+            '6':'시큐트러스트', '7':'모니터랩', '8':'인스테크', '9':'쿼리시스템즈', '10':'에스디씨디엠',
+            '11':'고객사 유지보수', '12':'없음', '13':'윈스'
+        };
+        document.getElementById('cust_view_maint').innerText = maintMap[d.maint] || d.maint || '-';
+        document.getElementById('cust_view_op_comp').innerText = (d.opComp=='0'?'ICTIS':(d.opComp=='1'?'고객사':'-'));
+        document.getElementById('cust_view_mode').innerText = (d.opMode=='1'?'탐지':(d.opMode=='2'?'차단':'-'));
+        document.getElementById('cust_view_idc').innerText = d.idc || '-';
+        document.getElementById('cust_view_supplier').innerText = d.supplier || '-';
+
+        document.getElementById('cust_view_backup').innerText = (d.backup=='0'?'YES':'NO');
+        document.getElementById('cust_view_cycle').innerText = (d.cycle=='0'?'Daily':(d.cycle=='1'?'Weekly':'Monthly'));
+        document.getElementById('cust_view_note').innerText = d.cnote || '';
+
+        const pD = (v) => (v && v!='None') ? v.split(' ')[0] : '-';
+        document.getElementById('cust_view_purchase').innerText = pD(d.purchase);
+        document.getElementById('cust_view_receive').innerText = pD(d.receive);
+        document.getElementById('cust_view_install').innerText = pD(d.install);
+        document.getElementById('cust_view_return').innerText = pD(d.return);
+        document.getElementById('cust_view_disposal').innerText = pD(d.disposal);
+        document.getElementById('cust_view_license').innerText = pD(d.license);
+
+        document.getElementById('cust_view_desc').innerText = d.desc || '-';
+
+        // Submitter & Updated
+        document.getElementById('cust_view_submitter').innerText = d.submitter || '-';
+        document.getElementById('cust_view_updated').innerText = d.updated || '-';
+
+        document.getElementById('btnCustEditFromDetail').onclick = function() {
+            bootstrap.Modal.getInstance(document.getElementById('custDetailModal')).hide();
+            openCustEdit(row);
+        };
+
+        new bootstrap.Modal(document.getElementById('custDetailModal')).show();
+    }
+
+    // 2. 등록
+    function openCustRegister() {
+        document.getElementById('custAssetForm').reset();
+        document.getElementById('assetModalTitle').innerText = '보안장비 추가';
+        document.getElementById('cust_asset_id').value = '';
+        $('.select2-cust').val('').trigger('change');
+        new bootstrap.Modal(document.getElementById('custAssetModal')).show();
+    }
+
+    // 3. 수정
+    function openCustEdit(tr) {
+        document.getElementById('assetModalTitle').innerText = '보안장비 수정';
+        document.getElementById('cust_asset_id').value = tr.dataset.id;
+
+        const d = tr.dataset;
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if(el) el.value = (val === 'None' || val === undefined) ? '' : val;
+        };
+
+        $('#cust_supplier').val(d.supplier).trigger('change');
+        $('#cust_type').val(d.type).trigger('change');
+        $('#cust_item').val(d.item).trigger('change');
+        $('#cust_maintenance_company').val(d.maint).trigger('change');
+
+        setVal('cust_ci_name', d.name);
+        setVal('cust_category', d.category);
+        setVal('cust_product_name', d.product);
+        setVal('cust_model_number', d.model);
+        setVal('cust_manufacturer_name', d.manufacturer);
+        setVal('cust_serial_number', d.serial);
+        setVal('cust_ip_address', d.ip);
+
+        setVal('cust_ci_note', d.note);
+        setVal('cust_operation_company', d.opComp);
+        setVal('cust_operation_mode', d.opMode);
+        setVal('cust_idc_site', d.idc);
+        setVal('cust_c_backup', d.backup);
+        setVal('cust_c_cycle', d.cycle);
+        setVal('cust_cfg_note', d.cnote);
+        setVal('cust_lifecycle_status', d.status);
+
+        const pD = (v) => (v && v!='None') ? v.split(' ')[0] : '';
+        setVal('cust_purchase_date', pD(d.purchase));
+        setVal('cust_receive_date', pD(d.receive));
+        setVal('cust_installation_date', pD(d.install));
+        setVal('cust_return_date', pD(d.return));
+        setVal('cust_license_expiry', pD(d.license));
+        setVal('cust_disposal_date', pD(d.disposal));
+
+        setVal('cust_description', d.desc);
+
+        new bootstrap.Modal(document.getElementById('custAssetModal')).show();
+    }
+
+    // 4. 저장
+    async function saveCustAsset() {
+        const form = document.getElementById('custAssetForm');
+        if (!form.checkValidity()) { form.reportValidity(); return; }
+
+        const formData = new FormData(form);
+        try {
+            const res = await fetch('/asset/ajax/save', { method: 'POST', body: formData });
+            const json = await res.json();
+
+            if (json.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('custAssetModal')).hide();
+                await Swal.fire('성공', '저장되었습니다.', 'success');
+                window.location.hash = 'tab-assets';
+                window.location.reload();
+            } else {
+                Swal.fire('오류', json.message, 'error');
+            }
+        } catch(e) {
+            Swal.fire('오류', '통신 중 문제가 발생했습니다.', 'error');
+        }
+    }
+
+    // 5. 삭제
+    async function deleteCustAsset(id) {
+        const result = await Swal.fire({
+            title: '삭제하시겠습니까?',
+            text: "복구할 수 없습니다.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: '삭제'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`/asset/ajax/${id}/delete`, { method: 'POST' });
+                const json = await res.json();
+                if (json.ok) {
+                    await Swal.fire('삭제됨', '삭제되었습니다.', 'success');
+                    window.location.hash = 'tab-assets';
+                    window.location.reload();
+                } else {
+                    Swal.fire('오류', '삭제 실패', 'error');
+                }
+            } catch(e) {
+                Swal.fire('오류', '통신 오류', 'error');
+            }
+        }
+    }
 // ==============================================================
 // [3] 서버 (Servers)
 // ==============================================================
@@ -391,18 +336,24 @@ function addServerRow() {
         </div>`;
     container.appendChild(newRow);
 }
-function removeServerRow(btn) { btn.closest('.server-row').remove(); }
+
+function removeServerRow(btn) {
+    btn.closest('.server-row').remove();
+}
 
 // [3] 서버 추가 (AJAX + SweetAlert)
 async function addServer() {
     const form = document.getElementById('serverAddForm');
-    if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
 
     const personId = document.getElementById('server_person_id').value;
     const formData = new FormData(form);
 
     try {
-        const res = await fetch(`/customers/${personId}/servers/add`, { method: 'POST', body: formData });
+        const res = await fetch(`/customers/${personId}/servers/add`, {method: 'POST', body: formData});
         const json = await res.json();
 
         if (json.ok) {
@@ -429,7 +380,11 @@ async function editServer(serverId, personId) {
         const res = await fetch(`/customers/${personId}/servers/${serverId}/edit`);
         const json = await res.json();
 
-        if (!json.ok) { alert(json.message); modal.hide(); return; }
+        if (!json.ok) {
+            alert(json.message);
+            modal.hide();
+            return;
+        }
 
         const s = json.data;
         body.innerHTML = `
@@ -457,7 +412,10 @@ async function editServer(serverId, personId) {
 // [5] 서버 수정 저장 (SweetAlert 적용!)
 async function updateServer() {
     const form = document.getElementById('serverEditForm');
-    if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
 
     const personId = document.getElementById('server_person_id').value;
     const serverId = document.getElementById('edit_server_id').value;
@@ -527,7 +485,7 @@ async function deleteServer(serverId, personId) {
 }
 
 // [7] 탭 유지
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     if (window.location.hash === '#tab-servers') {
         const triggerEl = document.querySelector('button[data-bs-target="#tab-servers"]');
         if (triggerEl) new bootstrap.Tab(triggerEl).show();
@@ -547,14 +505,17 @@ function openContactAddModal() {
 // [2] 담당자 등록 (AJAX + SweetAlert)
 async function addContact() {
     const form = document.getElementById('contactAddForm');
-    if (!form.checkValidity()) { form.reportValidity(); return; }
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
 
     const personId = document.getElementById('contact_person_id').value;
     const url = `/customers/${personId}/contacts/add`;
     const formData = new FormData(form);
 
     try {
-        const res = await fetch(url, { method: 'POST', body: formData });
+        const res = await fetch(url, {method: 'POST', body: formData});
         const json = await res.json();
 
         if (json.ok) {
@@ -673,7 +634,7 @@ async function deleteContact(contactId, personId) {
 }
 
 // [6] 탭 유지
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     if (window.location.hash === '#tab-contacts') {
         const triggerEl = document.querySelector('button[data-bs-target="#tab-contacts"]');
         if (triggerEl) {
@@ -683,8 +644,6 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 
-
-
 // ==============================================================
 // [5] 작업 이력 (Work History) - detail.html 전용
 // ==============================================================
@@ -692,28 +651,31 @@ document.addEventListener("DOMContentLoaded", function() {
 // 1. 작업 등록 (AJAX)
 async function createWork() {
     const form = document.getElementById('workCreateForm');
-    if(!form.checkValidity()) { form.reportValidity(); return; }
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
 
     const formData = new FormData(form);
 
     // 날짜 값 없으면 오늘 날짜 자동 입력 (안전장치)
-    if(!formData.get('work_date')) {
+    if (!formData.get('work_date')) {
         formData.set('work_date', new Date().toISOString().split('T')[0]);
     }
 
     try {
         // work.py의 공통 API 호출
-        const res = await fetch('/work/ajax/create', { method: 'POST', body: formData });
+        const res = await fetch('/work/ajax/create', {method: 'POST', body: formData});
         const json = await res.json();
 
-        if(json.ok) {
+        if (json.ok) {
             await Swal.fire('성공', '작업이 등록되었습니다.', 'success');
             window.location.hash = 'tab-work'; // 작업 탭 유지
             window.location.reload();
         } else {
             Swal.fire('오류', json.message, 'error');
         }
-    } catch(e) {
+    } catch (e) {
         Swal.fire('오류', '통신 중 문제가 발생했습니다.', 'error');
     }
 }
@@ -731,10 +693,10 @@ function openWorkEditModal(workId) {
 
     // work.py의 공통 API 재사용
     Promise.all([
-        fetch(`/work/ajax/${workId}/detail`).then(r=>r.json()),
-        fetch(`/work/ajax/${workId}/attachments`).then(r=>r.json())
+        fetch(`/work/ajax/${workId}/detail`).then(r => r.json()),
+        fetch(`/work/ajax/${workId}/attachments`).then(r => r.json())
     ]).then(([detailRes, attRes]) => {
-        if(!detailRes.ok) throw new Error(detailRes.message);
+        if (!detailRes.ok) throw new Error(detailRes.message);
 
         const d = detailRes.data;
         document.getElementById('edit_person_id').value = d.person_id;
@@ -747,7 +709,7 @@ function openWorkEditModal(workId) {
         const fileList = document.getElementById('edit_file_list');
         const items = attRes.items || [];
 
-        if(items.length > 0) {
+        if (items.length > 0) {
             fileList.innerHTML = items.map(f => `
                 <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom last-border-0">
                     <div class="text-truncate">
@@ -770,18 +732,18 @@ function openWorkEditModal(workId) {
 
 // 3. 첨부파일 개별 삭제 (수정 모달 내)
 async function deleteAttachmentInCustomer(attId, workId) {
-    if(!confirm("이 첨부파일을 삭제하시겠습니까?")) return;
+    if (!confirm("이 첨부파일을 삭제하시겠습니까?")) return;
 
     try {
-        const res = await fetch(`/work/ajax/attachments/${attId}/delete`, { method: 'POST' });
+        const res = await fetch(`/work/ajax/attachments/${attId}/delete`, {method: 'POST'});
         const json = await res.json();
-        if(json.ok) {
+        if (json.ok) {
             // 모달 닫지 않고 파일 목록만 새로고침 (UX 향상)
-            const attRes = await fetch(`/work/ajax/${workId}/attachments`).then(r=>r.json());
+            const attRes = await fetch(`/work/ajax/${workId}/attachments`).then(r => r.json());
             const fileList = document.getElementById('edit_file_list');
             const items = attRes.items || [];
 
-            if(items.length > 0) {
+            if (items.length > 0) {
                 fileList.innerHTML = items.map(f => `
                     <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom last-border-0">
                         <div class="text-truncate">
@@ -796,7 +758,7 @@ async function deleteAttachmentInCustomer(attId, workId) {
         } else {
             alert('삭제 실패');
         }
-    } catch(e) {
+    } catch (e) {
         alert('통신 오류');
     }
 }
@@ -809,10 +771,10 @@ async function updateWork() {
     const formData = new FormData(form);
 
     try {
-        const res = await fetch(`/work/ajax/${workId}/update`, { method: 'POST', body: formData });
+        const res = await fetch(`/work/ajax/${workId}/update`, {method: 'POST', body: formData});
         const json = await res.json();
 
-        if(json.ok) {
+        if (json.ok) {
             await Swal.fire('수정 완료', '작업 정보가 수정되었습니다.', 'success');
 
             // [핵심 수정] 작업 탭을 보겠다고 명시한 뒤 새로고침
@@ -821,7 +783,7 @@ async function updateWork() {
         } else {
             Swal.fire('오류', json.message, 'error');
         }
-    } catch(e) {
+    } catch (e) {
         Swal.fire('오류', '통신 오류', 'error');
     }
 }
@@ -838,19 +800,19 @@ async function deleteWork(workId) {
         cancelButtonText: '취소'
     });
 
-    if(result.isConfirmed) {
+    if (result.isConfirmed) {
         try {
-            const res = await fetch(`/work/ajax/${workId}/delete`, { method: 'POST' });
+            const res = await fetch(`/work/ajax/${workId}/delete`, {method: 'POST'});
             const json = await res.json();
 
-            if(json.ok) {
+            if (json.ok) {
                 await Swal.fire('삭제됨', '작업이 삭제되었습니다.', 'success');
                 window.location.hash = 'tab-work';
                 window.location.reload();
             } else {
                 Swal.fire('오류', json.message, 'error');
             }
-        } catch(e) {
+        } catch (e) {
             Swal.fire('오류', '통신 오류', 'error');
         }
     }
@@ -865,16 +827,16 @@ function openWorkDetail(workId) {
     modal.show();
 
     Promise.all([
-        fetch(`/work/ajax/${workId}/detail`).then(r=>r.json()),
-        fetch(`/work/ajax/${workId}/attachments`).then(r=>r.json())
+        fetch(`/work/ajax/${workId}/detail`).then(r => r.json()),
+        fetch(`/work/ajax/${workId}/attachments`).then(r => r.json())
     ]).then(([detailRes, attRes]) => {
-        if(!detailRes.ok) throw new Error(detailRes.message);
+        if (!detailRes.ok) throw new Error(detailRes.message);
 
         const d = detailRes.data;
         const items = attRes.items || [];
 
         let fileHtml = '<span class="text-muted small">첨부파일 없음</span>';
-        if(items.length > 0) {
+        if (items.length > 0) {
             fileHtml = `<ul class="list-group">` +
                 items.map(f => `
                     <li class="list-group-item d-flex justify-content-between align-items-center">

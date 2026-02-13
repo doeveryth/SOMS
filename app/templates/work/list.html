@@ -6,7 +6,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold mb-1">작업 관리</h4>
-            <span class="text-muted small">작업 이력을 조회하고 관리합니다.</span>
+            <span class="text-muted">전체 작업 관리 및 신규 등록</span>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ url_for('schedule.index') }}" class="btn btn-outline-primary">
@@ -47,7 +47,7 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-header bg-white py-3 border-bottom-0">
-                    <h6 class="fw-bold m-0 text-primary"><i class="bi bi-list-ul me-2"></i>작업 목록</h6>
+                    <h6 class="fw-bold m-0 text-primary"><i class="bi bi-list-ul me-2"></i>작업 목록 (총 {{ pagination.total }}건)</h6>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0" style="min-width: 800px;">
@@ -64,7 +64,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                        {% for w, p in rows %}
+                        {% for w, p in pagination.items %}
                             <tr style="cursor: pointer;" onclick="loadWorkDetail({{ w.Work_ID }}, this)">
                                 <td class="text-center text-muted small">{{ w.Work_ID }}</td>
                                 <td>
@@ -97,6 +97,39 @@
                         </tbody>
                     </table>
                 </div>
+
+                {% if pagination.pages > 1 %}
+                <div class="card-footer bg-white border-top-0 py-3">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                <a class="page-link border-0 rounded-circle mx-1" href="{{ url_for('work.list_work', page=pagination.prev_num, q=filters.q, from=filters['from'], to=filters['to']) if pagination.has_prev else '#' }}">&laquo;</a>
+                            </li>
+
+                            {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                {% if p %}
+                                    {% if p == pagination.page %}
+                                    <li class="page-item active"><span class="page-link border-0 rounded-circle mx-1">{{ p }}</span></li>
+                                    {% else %}
+                                    <li class="page-item">
+                                        <a class="page-link border-0 rounded-circle mx-1 text-secondary"
+                                           href="{{ url_for('work.list_work', page=p, q=filters.q, from=filters['from'], to=filters['to']) }}">
+                                           {{ p }}
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                {% else %}
+                                    <li class="page-item disabled"><span class="page-link border-0 mx-1">...</span></li>
+                                {% endif %}
+                            {% endfor %}
+
+                            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                <a class="page-link border-0 rounded-circle mx-1" href="{{ url_for('work.list_work', page=pagination.next_num, q=filters.q, from=filters['from'], to=filters['to']) if pagination.has_next else '#' }}">&raquo;</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -131,14 +164,22 @@
             <div class="modal-body p-4">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label small fw-bold">고객사 *</label>
-                        <select class="form-select" name="person_id" required>
-                            <option value="">-- 선택 --</option>
+                        <label class="form-label small fw-bold">사이트명 *</label>
+                        <select class="form-select select2-site" id="create_person_id" name="person_id" required style="width: 100%;">
+                            <option value="">-- 사이트 검색 --</option>
                             {% for p in people %}
-                            <option value="{{ p.Person_ID }}">{{ p.Company }} ({{ p.Last_Name or '-' }})</option>
+                            <option value="{{ p.Person_ID }}" data-company="{{ p.Company }}">
+                                {{ p.Last_Name }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">고객사 (자동 입력)</label>
+                        <input type="text" class="form-control bg-light" id="create_company_view" readonly tabindex="-1">
+                    </div>
+
                     <div class="col-md-6">
                         <label class="form-label small fw-bold">작업일 *</label>
                         <input type="date" class="form-control" name="work_date" value="{{ today_date }}" required>
@@ -154,9 +195,9 @@
                             <option value="기타">기타</option>
                         </select>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12">
                         <label class="form-label small fw-bold">요약</label>
-                        <input type="text" class="form-control" name="summary">
+                        <input type="text" class="form-control" name="summary" placeholder="작업 요약 제목">
                     </div>
                     <div class="col-12">
                         <label class="form-label small fw-bold">상세 내용</label>
@@ -185,11 +226,9 @@
             </div>
             <div class="modal-body p-4">
                 <input type="hidden" id="edit_work_id">
-
                 <div id="editLoading" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
                 </div>
-
                 <div id="editContent" style="display: none;">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -223,18 +262,15 @@
                             <label class="form-label small fw-bold">상세 내용</label>
                             <textarea class="form-control" id="edit_description" name="description" rows="5"></textarea>
                         </div>
-
                         <div class="col-12">
                             <label class="form-label small fw-bold">기존 첨부파일</label>
                             <div id="edit_file_list" class="bg-light p-3 rounded border">
                                 <span class="text-muted small">파일 없음</span>
                             </div>
                         </div>
-
                         <div class="col-12">
                             <label class="form-label small fw-bold text-primary">파일 추가</label>
                             <input type="file" class="form-control" name="files[]" multiple>
-                            <div class="form-text small">파일을 선택하면 기존 파일에 추가됩니다.</div>
                         </div>
                     </div>
                 </div>
